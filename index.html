@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Квантовое поле · палитры</title>
+    <title>Квантовое поле</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
@@ -86,7 +86,7 @@
         }
         .menu.open .menu-toggle svg { transform: rotate(90deg); }
 
-        .palette-panel {
+        .side-panel {
             position: fixed;
             top: 0;
             right: -320px;
@@ -100,47 +100,166 @@
             padding: 24px 20px;
             transition: right 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
             overflow-y: auto;
+            overflow-x: hidden;
             pointer-events: auto;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
         }
-        .menu.open .palette-panel { right: 0; }
+        .side-panel::-webkit-scrollbar { display: none; }
+        .side-panel { scrollbar-width: none; }
 
-        .palette-panel h3 {
+        .menu.open .side-panel { right: 0; }
+
+        .side-panel h3 {
             color: rgba(255,255,255,0.8);
             font-size: 14px;
             font-weight: 500;
             letter-spacing: 2px;
             text-transform: uppercase;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             margin-top: 8px;
         }
-        .palette-option {
+
+        .dropdown-section {
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 8px;
+        }
+
+        .dropdown-header {
             display: flex;
             align-items: center;
-            gap: 14px;
-            padding: 12px 14px;
-            margin-bottom: 6px;
-            border-radius: 12px;
+            justify-content: space-between;
+            padding: 12px 8px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.2s;
+            user-select: none;
+            position: sticky;
+            top: 0;
+            background: rgba(10,10,20,0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 2;
+        }
+        .dropdown-header:hover { background: rgba(255,255,255,0.08); }
+
+        .dropdown-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .dropdown-header-icon {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .dropdown-header-label {
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .dropdown-header-current {
+            color: rgba(255,255,255,0.4);
+            font-size: 11px;
+            margin-left: auto;
+            margin-right: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 90px;
+        }
+        .dropdown-arrow {
+            color: rgba(255,255,255,0.4);
+            font-size: 10px;
+            transition: transform 0.3s;
+            flex-shrink: 0;
+        }
+        .dropdown-section.open .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-content {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.35s ease;
+        }
+        .dropdown-section.open .dropdown-content {
+            max-height: 600px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+        }
+        .dropdown-content::-webkit-scrollbar { display: none; }
+        .dropdown-content { scrollbar-width: none; }
+
+        .option-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 4px 0 8px 0;
+        }
+
+        .category-title {
+            color: rgba(255,255,255,0.35);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 10px 12px 4px 12px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 9px 12px;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s;
             border: 1.5px solid transparent;
         }
-        .palette-option:hover { background: rgba(255,255,255,0.05); }
-        .palette-option.active {
+        .option-item:hover { background: rgba(255,255,255,0.05); }
+        .option-item.active {
             background: rgba(255,255,255,0.1);
             border-color: rgba(255,255,255,0.3);
         }
-        .palette-swatch {
-            width: 48px;
-            height: 20px;
-            border-radius: 6px;
+
+        .option-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            background: rgba(255,255,255,0.08);
         }
-        .palette-name {
+        .option-item.active .option-icon {
+            background: rgba(255,255,255,0.18);
+        }
+
+        .option-label {
             color: rgba(255,255,255,0.7);
             font-size: 13px;
             font-weight: 400;
             white-space: nowrap;
         }
+
+        .palette-swatch {
+            width: 36px;
+            height: 18px;
+            border-radius: 5px;
+            flex-shrink: 0;
+        }
+
         .overlay {
             position: fixed;
             top: 0;
@@ -172,8 +291,36 @@
                 <line x1="4" y1="18" x2="20" y2="18"/>
             </svg>
         </button>
-        <div class="palette-panel" id="palettePanel">
-            <h3>Палитра</h3>
+        <div class="side-panel" id="sidePanel">
+            <h3>Настройки</h3>
+
+            <div class="dropdown-section" id="modeSection">
+                <div class="dropdown-header" id="modeHeader">
+                    <div class="dropdown-header-left">
+                        <span class="dropdown-header-icon">🌀</span>
+                        <span class="dropdown-header-label">Режим</span>
+                    </div>
+                    <span class="dropdown-header-current" id="modeCurrent">Вихрь</span>
+                    <span class="dropdown-arrow">▼</span>
+                </div>
+                <div class="dropdown-content" id="modeContent">
+                    <div class="option-list" id="modeList"></div>
+                </div>
+            </div>
+
+            <div class="dropdown-section" id="paletteSection">
+                <div class="dropdown-header" id="paletteHeader">
+                    <div class="dropdown-header-left">
+                        <span class="dropdown-header-icon">🎨</span>
+                        <span class="dropdown-header-label">Палитра</span>
+                    </div>
+                    <span class="dropdown-header-current" id="paletteCurrent">4K UI</span>
+                    <span class="dropdown-arrow">▼</span>
+                </div>
+                <div class="dropdown-content" id="paletteContent">
+                    <div class="option-list" id="paletteList"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -199,7 +346,7 @@
         const menu = document.getElementById('menu');
         const menuToggle = document.getElementById('menuToggle');
         const overlay = document.getElementById('overlay');
-        const palettePanel = document.getElementById('palettePanel');
+        const sidePanel = document.getElementById('sidePanel');
 
         let menuOpen = false;
 
@@ -211,8 +358,73 @@
         menuToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(); });
         overlay.addEventListener('click', toggleMenu);
 
+        sidePanel.addEventListener('click', (e) => { e.stopPropagation(); });
+        sidePanel.addEventListener('touchmove', (e) => { e.stopPropagation(); });
+        sidePanel.addEventListener('touchstart', (e) => { e.stopPropagation(); });
+
         // ============================================================
-        // ПАЛИТРЫ (20 штук)
+        // ВЫПАДАЮЩИЕ СПИСКИ
+        // ============================================================
+        function setupDropdown(sectionId, headerId) {
+            const section = document.getElementById(sectionId);
+            const header = document.getElementById(headerId);
+            header.addEventListener('click', (e) => {
+                e.stopPropagation();
+                section.classList.toggle('open');
+            });
+        }
+
+        setupDropdown('modeSection', 'modeHeader');
+        setupDropdown('paletteSection', 'paletteHeader');
+
+        // ============================================================
+        // РЕЖИМЫ (с категориями)
+        // ============================================================
+        const modeCategories = [
+            {
+                name: 'Физические',
+                modes: [
+                    { key: 'vortex', name: 'Вихрь', icon: '🌀' },
+                    { key: 'blackhole', name: 'Чёрная дыра', icon: '🕳️' },
+                    { key: 'horizon', name: 'Горизонт событий', icon: '⏳' },
+                    { key: 'antigravity', name: 'Антигравитация', icon: '💥' },
+                ]
+            },
+            {
+                name: 'Волновые',
+                modes: [
+                    { key: 'wave', name: 'Волна', icon: '🌊' },
+                    { key: 'moire', name: 'Муар', icon: '🔮' },
+                ]
+            },
+            {
+                name: 'Математические',
+                modes: [
+                    { key: 'fibonacci', name: 'Спираль Фибоначчи', icon: '🐚' },
+                ]
+            },
+            {
+                name: 'Биологические',
+                modes: [
+                    { key: 'mycelium', name: 'Мицелий', icon: '🍄' },
+                    { key: 'plankton', name: 'Планктон', icon: '🦠' },
+                    { key: 'swarm', name: 'Рой', icon: '🐝' },
+                ]
+            },
+        ];
+
+        // Плоский словарь для быстрого доступа
+        const modes = {};
+        modeCategories.forEach(cat => {
+            cat.modes.forEach(m => {
+                modes[m.key] = { name: m.name, icon: m.icon };
+            });
+        });
+
+        let currentMode = 'vortex';
+
+        // ============================================================
+        // ПАЛИТРЫ
         // ============================================================
         const palettes = {
             default: {
@@ -434,23 +646,52 @@
             },
         };
 
-        // ============================================================
-        // СТРОИМ МЕНЮ ДИНАМИЧЕСКИ
-        // ============================================================
         let currentPalette = 'default';
 
-        function buildMenu() {
-            palettePanel.querySelectorAll('.palette-option').forEach(el => el.remove());
+        // ============================================================
+        // СТРОИМ МЕНЮ
+        // ============================================================
+        function buildModeList() {
+            const list = document.getElementById('modeList');
+            list.innerHTML = '';
 
+            modeCategories.forEach(cat => {
+                // Заголовок категории
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.textContent = cat.name;
+                list.appendChild(title);
+
+                // Режимы в категории
+                cat.modes.forEach(mode => {
+                    const div = document.createElement('div');
+                    div.className = 'option-item' + (mode.key === currentMode ? ' active' : '');
+                    div.innerHTML = `
+                        <div class="option-icon">${mode.icon}</div>
+                        <span class="option-label">${mode.name}</span>
+                    `;
+                    div.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        currentMode = mode.key;
+                        document.getElementById('modeCurrent').textContent = mode.name;
+                        buildModeList();
+                    });
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        function buildPaletteList() {
+            const list = document.getElementById('paletteList');
+            list.innerHTML = '';
             const keys = Object.keys(palettes);
-            keys.forEach((key, index) => {
+            keys.forEach(key => {
                 const palette = palettes[key];
                 const div = document.createElement('div');
-                div.className = 'palette-option' + (key === currentPalette ? ' active' : '');
-                div.dataset.palette = key;
+                div.className = 'option-item' + (key === currentPalette ? ' active' : '');
                 div.innerHTML = `
                     <div class="palette-swatch" style="background: ${palette.swatch};"></div>
-                    <span class="palette-name">${palette.name}</span>
+                    <span class="option-label">${palette.name}</span>
                 `;
                 div.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -463,14 +704,15 @@
                     targetStops = JSON.parse(JSON.stringify(palettes[key].stops));
                     transitionProgress = 0;
                     currentPalette = key;
-                    buildMenu();
-                    toggleMenu();
+                    document.getElementById('paletteCurrent').textContent = palette.name;
+                    buildPaletteList();
                 });
-                palettePanel.appendChild(div);
+                list.appendChild(div);
             });
         }
 
-        buildMenu();
+        buildModeList();
+        buildPaletteList();
 
         // ============================================================
         // КВАНТОВОЕ ПОЛЕ
@@ -619,21 +861,106 @@
                 const dy = point.y - py;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < 0.2) continue;
-                if (dist < SINGULARITY) {
-                    const force = 25;
+
+                if (currentMode === 'vortex') {
+                    if (dist < SINGULARITY) {
+                        const force = 25;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        totalFx += nx * force;
+                        totalFy += ny * force;
+                        continue;
+                    }
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    const acceleration = 180 / (dist + 2);
+                    totalFx += nx * acceleration;
+                    totalFy += ny * acceleration;
+                    totalFx += -ny * acceleration * 0.6;
+                    totalFy += nx * acceleration * 0.6;
+                } else if (currentMode === 'blackhole') {
+                    const force = 200 / (dist * dist + 3);
                     const nx = dx / dist;
                     const ny = dy / dist;
                     totalFx += nx * force;
                     totalFy += ny * force;
-                    continue;
+                } else if (currentMode === 'horizon') {
+                    if (dist < 8) continue;
+                    if (dist < 18) {
+                        const force = 2.0 / (dist - 7);
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        totalFx += nx * force;
+                        totalFy += ny * force;
+                    } else {
+                        const force = 40 / dist;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        totalFx += nx * force;
+                        totalFy += ny * force;
+                    }
+                } else if (currentMode === 'antigravity') {
+                    if (dist < 0.5) continue;
+                    const force = -300 / (dist * dist + 5);
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    totalFx += nx * force;
+                    totalFy += ny * force;
+                } else if (currentMode === 'wave') {
+                    if (dist < 0.5) continue;
+                    const angle = Math.atan2(dy, dx);
+                    const waveForce = 15 * Math.sin(dist * 0.3) / (dist * 0.1 + 1);
+                    totalFx += Math.cos(angle) * waveForce;
+                    totalFy += Math.sin(angle) * waveForce;
+                } else if (currentMode === 'fibonacci') {
+                    if (dist < 0.5) continue;
+                    const PHI = 1.618;
+                    const angle = Math.atan2(dy, dx);
+                    const spiralAngle = Math.log(dist + 1) * PHI * 2.4;
+                    const pushAngle = angle + spiralAngle;
+                    const force = 8 / (dist * 0.3 + 0.5);
+                    totalFx += Math.cos(pushAngle) * force;
+                    totalFy += Math.sin(pushAngle) * force;
+                    totalFx += Math.cos(angle + Math.PI / 2) * force * 0.6;
+                    totalFy += Math.sin(angle + Math.PI / 2) * force * 0.6;
+                } else if (currentMode === 'moire') {
+                    if (dist < 0.5) continue;
+                    const angle = Math.atan2(dy, dx);
+                    const freq1 = Math.sin(dist * 0.15) * 0.5;
+                    const freq2 = Math.cos(dist * 0.13 + angle * 3) * 0.5;
+                    const moireForce = (freq1 + freq2) * 12 / (dist * 0.08 + 0.5);
+                    totalFx += Math.cos(angle) * moireForce;
+                    totalFy += Math.sin(angle) * moireForce;
+                    const perpForce = Math.sin(dist * 0.1 + angle * 5) * 6 / (dist * 0.05 + 0.5);
+                    totalFx += Math.cos(angle + Math.PI / 2) * perpForce;
+                    totalFy += Math.sin(angle + Math.PI / 2) * perpForce;
+                } else if (currentMode === 'mycelium') {
+                    if (dist < 0.5) continue;
+                    const angle = Math.atan2(dy, dx);
+                    const pulse = Math.sin(Date.now() * 0.002 + dist * 0.1) * 0.5 + 0.5;
+                    const force = 6 / (dist * 0.15 + 0.5) * (0.6 + pulse * 0.4);
+                    totalFx += Math.cos(angle) * force;
+                    totalFy += Math.sin(angle) * force;
+                    const branchForce = Math.sin(angle * 3 + Date.now() * 0.001) * 3 / (dist * 0.1 + 0.5);
+                    totalFx += Math.cos(angle + Math.PI / 2) * branchForce;
+                    totalFy += Math.sin(angle + Math.PI / 2) * branchForce;
+                } else if (currentMode === 'plankton') {
+                    if (dist < 0.5) continue;
+                    const angle = Math.atan2(dy, dx);
+                    const drift = Math.sin(Date.now() * 0.003 + px * 0.05) * Math.cos(Date.now() * 0.002 + py * 0.05);
+                    const force = 4 / (dist * 0.2 + 0.5) + drift * 2;
+                    totalFx += Math.cos(angle) * force;
+                    totalFy += Math.sin(angle) * force;
+                } else if (currentMode === 'swarm') {
+                    if (dist < 0.5) continue;
+                    const angle = Math.atan2(dy, dx);
+                    const cohesion = 5 / (dist * 0.2 + 0.5);
+                    const separation = dist < 20 ? -15 / (dist * dist * 0.05 + 0.5) : 0;
+                    const alignment = Math.sin(Date.now() * 0.001 + angle * 2) * 3;
+                    const force = cohesion + separation + alignment;
+                    totalFx += Math.cos(angle) * force;
+                    totalFy += Math.sin(angle) * force;
                 }
-                const nx = dx / dist;
-                const ny = dy / dist;
-                const acceleration = 180 / (dist + 2);
-                totalFx += nx * acceleration;
-                totalFy += ny * acceleration;
-                totalFx += -ny * acceleration * 0.6;
-                totalFy += nx * acceleration * 0.6;
             }
             return { fx: totalFx, fy: totalFy };
         }
@@ -754,22 +1081,22 @@
         }
 
         canvas.addEventListener('mousedown', function(e) {
-            if (e.target.closest('.menu-toggle') || e.target.closest('.palette-panel') || e.target.closest('.overlay')) return;
+            if (e.target.closest('.menu-toggle') || e.target.closest('.side-panel') || e.target.closest('.overlay')) return;
             if (e.button === 0) { mouseDown = true; mousePos = { x: e.clientX, y: e.clientY }; e.preventDefault(); }
         });
         window.addEventListener('mousemove', function(e) {
-            if (e.target.closest('.palette-panel') || e.target.closest('.menu-toggle')) return;
+            if (e.target.closest('.side-panel') || e.target.closest('.menu-toggle')) return;
             mousePos = { x: e.clientX, y: e.clientY };
         });
         window.addEventListener('mouseup', function(e) { if (e.button === 0) mouseDown = false; });
 
         canvas.addEventListener('touchstart', function(e) {
-            if (e.target.closest('.palette-panel') || e.target.closest('.menu-toggle') || e.target.closest('.overlay')) return;
+            if (e.target.closest('.side-panel') || e.target.closest('.menu-toggle') || e.target.closest('.overlay')) return;
             e.preventDefault();
             updateTouchPoints(e);
         }, { passive: false });
         canvas.addEventListener('touchmove', function(e) {
-            if (e.target.closest('.palette-panel') || e.target.closest('.menu-toggle')) return;
+            if (e.target.closest('.side-panel') || e.target.closest('.menu-toggle')) return;
             e.preventDefault();
             updateTouchPoints(e);
         }, { passive: false });
