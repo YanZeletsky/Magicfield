@@ -209,11 +209,16 @@
 
     // --- WebGL ---
     const canvas = document.getElementById('canvas');
-    const gl = canvas.getContext('webgl', { alpha: false, antialias: false, preserveDrawingBuffer: true });
+    let gl = canvas.getContext('webgl', { alpha: false, antialias: false, preserveDrawingBuffer: true });
+    if (!gl) gl = canvas.getContext('webgl', { alpha: false, antialias: false });
+    if (!gl) gl = canvas.getContext('experimental-webgl', { alpha: false });
     if (!gl) { document.body.innerHTML='<p style="color:#fff;padding:2em">WebGL не поддерживается</p>'; throw new Error('No WebGL'); }
+    // Если preserveDrawingBuffer не удалось — trails будет работать с очисткой
+    const hasPreserve = gl.getContextAttributes().preserveDrawingBuffer;
 
     // Шейдер частиц — с поддержкой трансформаций
     const vertSrc = `
+        precision mediump float;
         attribute vec2 a_position;
         attribute float a_hue;
         uniform vec2 u_resolution;
@@ -252,11 +257,11 @@
         void main(){vec2 pc=gl_PointCoord*2.0-1.0;float d=dot(pc,pc);float alpha=exp(-d*2.5)*1.60*u_alpha;if(alpha<0.01)discard;vec3 color=getPaletteColor(v_hue)*u_colorMask;gl_FragColor=vec4(color*alpha,alpha);}
     `;
     // Шейдер затемнения для trails
-    const quadVertSrc = `attribute vec2 a_pos; void main(){gl_Position=vec4(a_pos,0,1);}`;
-    const quadFragSrc = `precision mediump float; uniform float u_dim; void main(){gl_FragColor=vec4(0,0,0,u_dim);}`;
+    const quadVertSrc = `precision mediump float; attribute vec2 a_pos; void main(){gl_Position=vec4(a_pos,0,1);}`;
+    const quadFragSrc = `precision mediump float; uniform float u_dim; void main(){gl_FragColor=vec4(0.0,0.0,0.0,u_dim);}`;
 
-    function createShader(t,s){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(sh));return null;}return sh;}
-    function createProgram(v,f){const p=gl.createProgram();gl.attachShader(p,v);gl.attachShader(p,f);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(p));return null;}return p;}
+    function createShader(t,s){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){const err=gl.getShaderInfoLog(sh);console.error('Shader error:',err);document.body.innerHTML='<p style="color:#fff;padding:2em;font-size:12px">Shader error: '+err+'</p>';return null;}return sh;}
+    function createProgram(v,f){if(!v||!f)return null;const p=gl.createProgram();gl.attachShader(p,v);gl.attachShader(p,f);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS)){const err=gl.getProgramInfoLog(p);console.error('Program error:',err);return null;}return p;}
 
     const program = createProgram(createShader(gl.VERTEX_SHADER,vertSrc),createShader(gl.FRAGMENT_SHADER,fragSrc));
     const quadProgram = createProgram(createShader(gl.VERTEX_SHADER,quadVertSrc),createShader(gl.FRAGMENT_SHADER,quadFragSrc));
@@ -409,8 +414,11 @@
         const mode = currentMode;
 
         if (mode === 'trails') {
-            // Не очищаем — рисуем полупрозрачный чёрный квад
-            drawDimQuad(0.08);
+            if (hasPreserve) {
+                drawDimQuad(0.08);
+            } else {
+                gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT);
+            }
             drawParticles(glPositions, {});
         } else if (mode === 'fractal_mirror') {
             gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT);
