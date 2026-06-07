@@ -213,10 +213,9 @@
     if (!gl) gl = canvas.getContext('webgl', { alpha: false, antialias: false });
     if (!gl) gl = canvas.getContext('experimental-webgl', { alpha: false });
     if (!gl) { document.body.innerHTML='<p style="color:#fff;padding:2em">WebGL не поддерживается</p>'; throw new Error('No WebGL'); }
-    // Если preserveDrawingBuffer не удалось — trails будет работать с очисткой
-    const hasPreserve = gl.getContextAttributes().preserveDrawingBuffer;
+    let hasPreserve = !!(gl.getContextAttributes() && gl.getContextAttributes().preserveDrawingBuffer);
 
-    // Шейдер частиц — с поддержкой трансформаций
+    // Шейдеры (исходники — константы, не зависят от контекста)
     const vertSrc = `
         precision mediump float;
         attribute vec2 a_position;
@@ -256,29 +255,77 @@
         vec3 getPaletteColor(float t){float idx=t*8.0;int lo=int(floor(idx));int hi=lo+1;if(hi>8)hi=8;if(lo<0)lo=0;float frac=idx-float(lo);float h1,s1,v1,h2,s2,v2;for(int i=0;i<9;i++){if(i==lo){h1=u_stopH[i];s1=u_stopS[i];v1=u_stopV[i];}if(i==hi){h2=u_stopH[i];s2=u_stopS[i];v2=u_stopV[i];}}float diff=h2-h1;if(diff>180.0)h1+=360.0;else if(diff<-180.0)h2+=360.0;return hsv2rgb(mix(h1,h2,frac),mix(s1,s2,frac),mix(v1,v2,frac));}
         void main(){vec2 pc=gl_PointCoord*2.0-1.0;float d=dot(pc,pc);float alpha=exp(-d*2.5)*1.60*u_alpha;if(alpha<0.01)discard;vec3 color=getPaletteColor(v_hue)*u_colorMask;gl_FragColor=vec4(color*alpha,alpha);}
     `;
-    // Шейдер затемнения для trails
     const quadVertSrc = `precision mediump float; attribute vec2 a_pos; void main(){gl_Position=vec4(a_pos,0,1);}`;
     const quadFragSrc = `precision mediump float; uniform float u_dim; void main(){gl_FragColor=vec4(0.0,0.0,0.0,u_dim);}`;
 
-    function createShader(t,s){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){const err=gl.getShaderInfoLog(sh);console.error('Shader error:',err);document.body.innerHTML='<p style="color:#fff;padding:2em;font-size:12px">Shader error: '+err+'</p>';return null;}return sh;}
-    function createProgram(v,f){if(!v||!f)return null;const p=gl.createProgram();gl.attachShader(p,v);gl.attachShader(p,f);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS)){const err=gl.getProgramInfoLog(p);console.error('Program error:',err);return null;}return p;}
+    function createShader(t,s){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){console.error('Shader error:',gl.getShaderInfoLog(sh));return null;}return sh;}
+    function createProgram(v,f){if(!v||!f)return null;const p=gl.createProgram();gl.attachShader(p,v);gl.attachShader(p,f);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS)){console.error('Program error:',gl.getProgramInfoLog(p));return null;}return p;}
 
-    const program = createProgram(createShader(gl.VERTEX_SHADER,vertSrc),createShader(gl.FRAGMENT_SHADER,fragSrc));
-    const quadProgram = createProgram(createShader(gl.VERTEX_SHADER,quadVertSrc),createShader(gl.FRAGMENT_SHADER,quadFragSrc));
+    // GPU-ресурсы — пересоздаются при восстановлении контекста
+    let program, quadProgram;
+    let aPosition, aHue, uResolution, uStopH, uStopS, uStopV, uAlpha, uColorMask, uRotation, uScale, uOffset, uPointScale, uSphereMode;
+    let aQuadPos, uDim, quadBuf, posBuffer, hueBuffer;
+    let contextLost = false;
 
-    const aPosition=gl.getAttribLocation(program,'a_position'), aHue=gl.getAttribLocation(program,'a_hue');
-    const uResolution=gl.getUniformLocation(program,'u_resolution'), uStopH=gl.getUniformLocation(program,'u_stopH'), uStopS=gl.getUniformLocation(program,'u_stopS'), uStopV=gl.getUniformLocation(program,'u_stopV');
-    const uAlpha=gl.getUniformLocation(program,'u_alpha'), uColorMask=gl.getUniformLocation(program,'u_colorMask');
-    const uRotation=gl.getUniformLocation(program,'u_rotation'), uScale=gl.getUniformLocation(program,'u_scale');
-    const uOffset=gl.getUniformLocation(program,'u_offset'), uPointScale=gl.getUniformLocation(program,'u_pointScale');
-    const uSphereMode=gl.getUniformLocation(program,'u_sphereMode');
+    function initGPU() {
+        program = createProgram(createShader(gl.VERTEX_SHADER,vertSrc),createShader(gl.FRAGMENT_SHADER,fragSrc));
+        quadProgram = createProgram(createShader(gl.VERTEX_SHADER,quadVertSrc),createShader(gl.FRAGMENT_SHADER,quadFragSrc));
+        if (!program || !quadProgram) return false;
 
-    const aQuadPos=gl.getAttribLocation(quadProgram,'a_pos'), uDim=gl.getUniformLocation(quadProgram,'u_dim');
-    const quadBuf=gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);
-    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+        aPosition=gl.getAttribLocation(program,'a_position'); aHue=gl.getAttribLocation(program,'a_hue');
+        uResolution=gl.getUniformLocation(program,'u_resolution'); uStopH=gl.getUniformLocation(program,'u_stopH'); uStopS=gl.getUniformLocation(program,'u_stopS'); uStopV=gl.getUniformLocation(program,'u_stopV');
+        uAlpha=gl.getUniformLocation(program,'u_alpha'); uColorMask=gl.getUniformLocation(program,'u_colorMask');
+        uRotation=gl.getUniformLocation(program,'u_rotation'); uScale=gl.getUniformLocation(program,'u_scale');
+        uOffset=gl.getUniformLocation(program,'u_offset'); uPointScale=gl.getUniformLocation(program,'u_pointScale');
+        uSphereMode=gl.getUniformLocation(program,'u_sphereMode');
 
-    const posBuffer=gl.createBuffer(), hueBuffer=gl.createBuffer();
+        aQuadPos=gl.getAttribLocation(quadProgram,'a_pos'); uDim=gl.getUniformLocation(quadProgram,'u_dim');
+        quadBuf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+        posBuffer=gl.createBuffer(); hueBuffer=gl.createBuffer();
+
+        // Перезагружаем hue в GPU
+        if (hue) { gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer); gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW); }
+        return true;
+    }
+
+    // --- Автовосстановление при потере контекста ---
+    canvas.addEventListener('webglcontextlost', function(e) {
+        e.preventDefault();
+        contextLost = true;
+        cancelAnimationFrame(animFrame);
+        console.log('⚠️ WebGL контекст потерян, ждём восстановления...');
+    });
+
+    canvas.addEventListener('webglcontextrestored', function() {
+        console.log('✅ WebGL контекст восстановлен');
+        contextLost = false;
+        hasPreserve = !!(gl.getContextAttributes() && gl.getContextAttributes().preserveDrawingBuffer);
+        if (initGPU()) {
+            gl.viewport(0, 0, W, H);
+            if (hue) { gl.bindBuffer(gl.ARRAY_BUFFER, hueBuffer); gl.bufferData(gl.ARRAY_BUFFER, hue, gl.STATIC_DRAW); }
+            lastTime = performance.now();
+            animFrame = requestAnimationFrame(loop);
+        }
+    });
+
+    // Периодическая проверка — если контекст потерян и не восстановился, пробуем пересоздать
+    setInterval(function() {
+        if (contextLost && gl.isContextLost && gl.isContextLost()) {
+            console.log('🔄 Попытка пересоздать контекст...');
+            gl = canvas.getContext('webgl', { alpha: false, antialias: false, preserveDrawingBuffer: true });
+            if (!gl) gl = canvas.getContext('webgl', { alpha: false, antialias: false });
+            if (!gl) gl = canvas.getContext('experimental-webgl', { alpha: false });
+            if (gl && !gl.isContextLost()) {
+                contextLost = false;
+                hasPreserve = !!(gl.getContextAttributes() && gl.getContextAttributes().preserveDrawingBuffer);
+                if (initGPU()) {
+                    init();
+                    lastTime = performance.now();
+                    animFrame = requestAnimationFrame(loop);
+                }
+            }
+        }
+    }, 3000);
 
     // --- Частицы ---
     const GAP=3; let W,H,COLS,ROWS,TOTAL;
@@ -410,6 +457,7 @@
     }
 
     function render() {
+        if (contextLost) return;
         for (let i=0;i<TOTAL;i++){glPositions[i*2]=posX[i];glPositions[i*2+1]=posY[i];}
         const mode = currentMode;
 
@@ -472,11 +520,11 @@
     }
 
     let lastTime=performance.now(),animFrame;
-    function loop(ts){const dt=Math.min(.1,(ts-lastTime)/1000);lastTime=ts;update(dt);render();animFrame=requestAnimationFrame(loop);}
-    window.addEventListener('resize',()=>{cancelAnimationFrame(animFrame);init();lastTime=performance.now();animFrame=requestAnimationFrame(loop);});
+    function loop(ts){if(contextLost)return;const dt=Math.min(.1,(ts-lastTime)/1000);lastTime=ts;update(dt);render();animFrame=requestAnimationFrame(loop);}
+    window.addEventListener('resize',()=>{if(contextLost)return;cancelAnimationFrame(animFrame);init();gl.viewport(0,0,W,H);if(hue){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}lastTime=performance.now();animFrame=requestAnimationFrame(loop);});
 
     const initNorm=normalizeStops(currentStops); for(let i=0;i<9;i++){shaderH[i]=initNorm[i].h;shaderS[i]=initNorm[i].s;shaderV[i]=initNorm[i].v;}
-    init(); render(); animFrame=requestAnimationFrame(loop);
+    initGPU(); init(); render(); animFrame=requestAnimationFrame(loop);
     </script>
 </body>
 </html>
