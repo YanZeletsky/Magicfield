@@ -129,6 +129,8 @@
                     <div class="ctrl-row"><span class="ctrl-label">Вращение</span><div class="ctrl-btns"><button class="ctrl-btn active" id="dirCW"><svg viewBox="0 0 16 16" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M11 3l2 2-2 2"/><path d="M13 5H7a4 4 0 100 8h1"/></svg></button><button class="ctrl-btn" id="dirCCW"><svg viewBox="0 0 16 16" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M5 3L3 5l2 2"/><path d="M3 5h6a4 4 0 110 8H8"/></svg></button></div></div>
                     <div class="ctrl-row"><span class="ctrl-label">Скорость</span><input type="range" class="ctrl-slider" id="speedSlider" min="0" max="200" value="100" step="1"></div>
                     <div class="ctrl-row"><span class="ctrl-label">Масштаб</span><input type="range" class="ctrl-slider" id="zoomSlider" min="30" max="100" value="100" step="1"></div>
+                    <div class="ctrl-row"><span class="ctrl-label">Яркость</span><input type="range" class="ctrl-slider" id="brightnessSlider" min="20" max="200" value="100" step="1"></div>
+                    <div class="ctrl-row"><span class="ctrl-label">Плотность</span><input type="range" class="ctrl-slider" id="gapSlider" min="2" max="8" value="3" step="1"></div>
                 </div>
             </div>
         </div>
@@ -194,6 +196,18 @@
     const zoomSlider=document.getElementById('zoomSlider');
     zoomSlider.addEventListener('input',e=>{e.stopPropagation();zoomLevel=+zoomSlider.value/100;});
     zoomSlider.addEventListener('touchstart',e=>e.stopPropagation());
+
+    // Яркость
+    let brightnessLevel=1;
+    const brightnessSlider=document.getElementById('brightnessSlider');
+    brightnessSlider.addEventListener('input',e=>{e.stopPropagation();brightnessLevel=+brightnessSlider.value/100;});
+    brightnessSlider.addEventListener('touchstart',e=>e.stopPropagation());
+
+    // Плотность (gap) — перестраивает сетку
+    let userGap=3;
+    const gapSlider=document.getElementById('gapSlider');
+    gapSlider.addEventListener('input',e=>{e.stopPropagation();userGap=+gapSlider.value;cancelAnimationFrame(animFrame);init();lastTime=performance.now();animFrame=requestAnimationFrame(loop);});
+    gapSlider.addEventListener('touchstart',e=>e.stopPropagation());
 
     // --- Обычные режимы ---
     const visualModes=['fractal_mirror','parallax','sphere_depth','trails','echo','chromatic','glitch','double_exp','mandala_6','mandala_8','mandala_12','mandala_test','mandala_pulse'];
@@ -266,7 +280,7 @@
     if(gl){glCanvas.addEventListener('webglcontextlost',function(e){e.preventDefault();contextLost=true;cancelAnimationFrame(animFrame);useWebGL=false;glCanvas.classList.add('hidden');c2dCanvas.classList.remove('hidden');ctx2d=c2dCanvas.getContext('2d');c2dCanvas.width=W;c2dCanvas.height=H;contextLost=false;lastTime=performance.now();animFrame=requestAnimationFrame(loop);});glCanvas.addEventListener('webglcontextrestored',function(){if(initGPU()){useWebGL=true;c2dCanvas.classList.add('hidden');glCanvas.classList.remove('hidden');gl.viewport(0,0,W,H);if(hue){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}contextLost=false;}});}
 
     // --- Частицы ---
-    function getGap(){if(!isMusicView)return 3;const px=window.innerWidth*window.innerHeight;if(px>1500000)return 5;if(px>800000)return 4;return 3;}
+    function getGap(){return userGap;}
     let GAP=getGap(),W,H,COLS,ROWS,TOTAL;
     let homeX,homeY,posX,posY,velX,velY,hue,glPositions;
     const ECHO_FRAMES=4;let echoHistory=[],echoFrame=0;
@@ -339,7 +353,7 @@
 
     // --- Рендер ---
     function drawDimQuad(d){gl.useProgram(quadProgram);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);gl.enableVertexAttribArray(aQuadPos);gl.vertexAttribPointer(aQuadPos,2,gl.FLOAT,false,0,0);gl.uniform1f(uDim,d);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);gl.disableVertexAttribArray(aQuadPos);}
-    function drawParticles(positions,o){gl.useProgram(program);gl.uniform2f(uResolution,W,H);gl.uniform1fv(uStopH,shaderH);gl.uniform1fv(uStopS,shaderS);gl.uniform1fv(uStopV,shaderV);gl.uniform1f(uAlpha,o.alpha||1);gl.uniform3f(uColorMask,o.r!==undefined?o.r:1,o.g!==undefined?o.g:1,o.b!==undefined?o.b:1);gl.uniform1f(uRotation,o.rotation||0);gl.uniform1f(uScale,(o.scale||1)*zoomLevel);gl.uniform2f(uOffset,o.ox||0,o.oy||0);gl.uniform1f(uPointScale,(o.pointScale||1)*zoomLevel);gl.uniform1f(uSphereMode,o.sphereMode||0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,positions,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.enableVertexAttribArray(aHue);gl.vertexAttribPointer(aHue,1,gl.FLOAT,false,0,0);gl.drawArrays(gl.POINTS,0,TOTAL);}
+    function drawParticles(positions,o){gl.useProgram(program);gl.uniform2f(uResolution,W,H);gl.uniform1fv(uStopH,shaderH);gl.uniform1fv(uStopS,shaderS);gl.uniform1fv(uStopV,shaderV);gl.uniform1f(uAlpha,(o.alpha||1)*brightnessLevel);gl.uniform3f(uColorMask,o.r!==undefined?o.r:1,o.g!==undefined?o.g:1,o.b!==undefined?o.b:1);gl.uniform1f(uRotation,o.rotation||0);gl.uniform1f(uScale,(o.scale||1)*zoomLevel);gl.uniform2f(uOffset,o.ox||0,o.oy||0);gl.uniform1f(uPointScale,(o.pointScale||1)*zoomLevel);gl.uniform1f(uSphereMode,o.sphereMode||0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,positions,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.enableVertexAttribArray(aHue);gl.vertexAttribPointer(aHue,1,gl.FLOAT,false,0,0);gl.drawArrays(gl.POINTS,0,TOTAL);}
 
     function renderGL(){for(let i=0;i<TOTAL;i++){glPositions[i*2]=posX[i];glPositions[i*2+1]=posY[i];}const mode=currentMode;
         if(mode==='trails'){if(hasPreserve)drawDimQuad(.08);else{gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);}drawParticles(glPositions,{});}
