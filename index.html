@@ -3,376 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Квантовое поле — WebGL</title>
-    <style>
-        * { margin:0;padding:0;box-sizing:border-box; }
-        html,body { width:100%;height:100%;overflow:hidden;background:#000;touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;position:fixed;top:0;left:0;font-family:'Segoe UI',system-ui,sans-serif;cursor:none; }
-        canvas { display:block;position:fixed;top:0;left:0;width:100%;height:100%;touch-action:none;z-index:1;cursor:none; }
-        .hidden { display:none!important; }
-        .cursor { position:fixed;pointer-events:none;z-index:100;width:12px;height:12px;border-radius:50%;background:rgba(0,0,0,0.9);border:2px solid rgba(255,255,255,0.5);box-shadow:0 0 8px rgba(0,0,0,0.8),0 0 4px rgba(255,255,255,0.3),inset 0 0 4px rgba(255,255,255,0.2);transform:translate(-50%,-50%);transition:width .15s,height .15s;display:none; }
-        .cursor.active { width:18px;height:18px;border-color:rgba(255,255,255,0.8); }
-        @media (hover: hover) and (pointer: fine) { .cursor { display: block; } }
-
-        /* --- Новое меню --- */
-        .ui-toggle{position:fixed;top:16px;right:16px;z-index:11;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.06);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s;pointer-events:auto;}
-        .ui-toggle:hover{background:rgba(255,255,255,0.12);}
-        .ui-toggle svg{width:16px;height:16px;stroke:rgba(255,255,255,0.6);fill:none;stroke-width:1.5;transition:transform .25s;}
-        .menu.open .ui-toggle svg{transform:rotate(45deg);}
-        .overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:8;opacity:0;pointer-events:none;transition:opacity .3s;}
-        .panel{position:fixed;top:60px;right:16px;width:240px;max-height:calc(100vh - 76px);z-index:9;background:rgba(8,8,16,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 12px;overflow-y:auto;overflow-x:hidden;pointer-events:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;scrollbar-width:none;opacity:0;transform:translateY(-8px) scale(.97);transition:opacity .25s,transform .25s;pointer-events:none;}
-        .panel::-webkit-scrollbar{display:none;}
-        .menu.open .panel{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
-
-        /* Сегментный переключатель */
-        .seg{display:flex;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);margin-bottom:14px;}
-        .seg-btn{flex:1;padding:8px 0;text-align:center;color:rgba(255,255,255,0.4);font-size:11px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .25s;border:none;background:transparent;}
-        .seg-btn.active{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.9);}
-
-        /* Секции */
-        .sec{margin-bottom:2px;border-bottom:1px solid rgba(255,255,255,0.04);}
-        .sec-head{display:flex;align-items:center;justify-content:space-between;padding:10px 6px;cursor:pointer;border-radius:6px;transition:background .2s;user-select:none;}
-        .sec-head:hover{background:rgba(255,255,255,0.05);}
-        .sec-left{display:flex;align-items:center;gap:8px;}
-        .sec-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;}
-        .sec-icon svg{width:14px;height:14px;stroke:rgba(255,255,255,0.5);fill:none;stroke-width:1.5;}
-        .sec-label{color:rgba(255,255,255,0.6);font-size:11px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;}
-        .sec-val{color:rgba(255,255,255,0.3);font-size:10px;margin-left:auto;margin-right:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;}
-        .sec-arrow{color:rgba(255,255,255,0.25);font-size:8px;transition:transform .3s;flex-shrink:0;}
-        .sec.open .sec-arrow{transform:rotate(180deg);}
-        .sec-body{overflow:hidden;max-height:0;transition:max-height .3s ease;scrollbar-width:none;}
-        .sec.open .sec-body{max-height:600px;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;-webkit-overflow-scrolling:touch;}
-        .sec-body::-webkit-scrollbar{display:none;}
-
-        /* Список опций */
-        .opts{display:flex;flex-direction:column;gap:1px;padding:4px 0 8px 0;}
-        .opt{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent;}
-        .opt:hover{background:rgba(255,255,255,0.04);}
-        .opt.active{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);}
-        .opt-name{color:rgba(255,255,255,0.6);font-size:12px;font-weight:400;}
-        .opt.active .opt-name{color:rgba(255,255,255,0.85);}
-        .cat-title{color:rgba(255,255,255,0.25);font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;padding:8px 10px 3px 10px;}
-        .swatch{width:32px;height:14px;border-radius:4px;flex-shrink:0;}
-
-        /* Настройки — слайдеры */
-        .ctrl-row{display:flex;align-items:center;gap:8px;padding:6px 10px;}
-        .ctrl-label{color:rgba(255,255,255,0.4);font-size:10px;letter-spacing:.5px;text-transform:uppercase;min-width:60px;flex-shrink:0;}
-        .ctrl-slider{-webkit-appearance:none;appearance:none;flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.12);outline:none;}
-        .ctrl-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.8);cursor:pointer;box-shadow:0 0 4px rgba(0,0,0,0.5);}
-        .ctrl-slider::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.8);cursor:pointer;border:none;}
-        .ctrl-btns{display:flex;gap:3px;margin-left:auto;}
-        .ctrl-btn{width:28px;height:24px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
-        .ctrl-btn.active{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.9);}
-
-        /* Плеер */
-        .player{padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);margin-top:4px;}
-        .player label{color:rgba(255,255,255,0.4);font-size:10px;letter-spacing:.8px;text-transform:uppercase;display:block;margin-bottom:6px;}
-        .player-upload{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
-        .player-upload-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;color:rgba(255,255,255,0.7);font-size:11px;cursor:pointer;transition:background .2s;flex-shrink:0;}
-        .player-upload-btn:hover{background:rgba(255,255,255,0.14);}
-        .player-fname{color:rgba(255,255,255,0.3);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;}
-        .player-controls{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-        .player-btn{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0;}
-        .player-btn:hover{background:rgba(255,255,255,0.15);}
-        .player-btn.playing{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.3);}
-        .player-time{color:rgba(255,255,255,0.3);font-size:9px;font-variant-numeric:tabular-nums;flex-shrink:0;min-width:28px;}
-        .player-vol{display:flex;align-items:center;gap:6px;}
-        .player-vol-icon{color:rgba(255,255,255,0.35);font-size:11px;flex-shrink:0;}
-
-        .mic-prompt{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(255,255,255,0.08);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:8px 20px;color:rgba(255,255,255,0.7);font-size:12px;cursor:pointer;pointer-events:auto;display:none;letter-spacing:.5px;animation:pulse 2s infinite;}
-        .mic-prompt.show{display:block;}
-        @keyframes pulse{0%,100%{opacity:.8;}50%{opacity:1;}}
-    </style>
+    <title>Soundfield</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="cursor" id="cursor"></div>
     <canvas id="glCanvas"></canvas>
     <canvas id="c2dCanvas" class="hidden"></canvas>
-    <div class="menu" id="menu">
-        <div class="overlay" id="overlay"></div>
-        <button class="ui-toggle" id="menuToggle"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-        <div class="panel" id="sidePanel">
-            <!-- Режим: Ручной / Музыка -->
-            <div class="seg">
-                <button class="seg-btn active" id="tbNormal">Ручной</button>
-                <button class="seg-btn" id="tbMusic">Музыка</button>
+
+    <!-- 👤 Профиль -->
+    <button class="anchor anchor-profile" id="profileToggle">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M24 20a7 7 0 1 0 0-14a7 7 0 0 0 0 14M6 40.8V42h36v-1.2c0-4.48 0-6.72-.872-8.432a8 8 0 0 0-3.496-3.496C35.92 28 33.68 28 29.2 28H18.8c-4.48 0-6.72 0-8.432.872a8 8 0 0 0-3.496 3.496C6 34.08 6 36.32 6 40.8"/></svg>
+    </button>
+    <!-- 👁 Глаз -->
+    <button class="anchor anchor-eye" id="eyeToggle">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M2.55 13.406c-.272-.373-.408-.56-.502-.92a2.5 2.5 0 0 1 0-.971c.094-.361.23-.548.502-.92C4.039 8.55 7.303 5 12 5s7.961 3.55 9.45 5.594c.272.373.408.56.502.92a2.5 2.5 0 0 1 0 .971c-.094.361-.23.548-.502.92C19.961 15.45 16.697 19 12 19s-7.961-3.55-9.45-5.594"/><path d="M12 14a2 2 0 1 0 0-4a2 2 0 0 0 0 4"/></g></svg>
+    </button>
+
+    <!-- Профиль панель -->
+    <aside class="profile-panel" id="profilePanel">
+        <div class="panel-title">Профиль</div>
+        <div class="profile-section"><div class="profile-avatar">S</div><div class="profile-info"><div class="profile-name">Soundfield User</div><div class="profile-email">user@soundfield.app</div></div></div>
+        <div class="profile-tier"><div class="tier-badge">Touch</div><span class="tier-label">Бесплатный тариф</span></div>
+        <div class="profile-menu"><div class="profile-menu-item">Аккаунт</div><div class="profile-menu-item">Тарифы</div><div class="profile-menu-item">Настройки</div><div class="profile-menu-item">О Soundfield</div></div>
+    </aside>
+
+    <!-- Левая панель инструментов (GoPaint стиль) -->
+    <div class="toolbar" id="toolbar">
+        <button class="tool-icon" data-tool="modes" id="toolModes">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="20" height="20"><path fill="currentColor" d="M12.772 2.994c1.662-.018 3.835-.042 5.663.158c1.018.111 1.86.285 2.427.533c.592.258.638.473.638.565c0 .137-.05.301-.41.501c-.384.214-.997.386-1.838.507c-1.669.24-3.92.242-6.252.242h-.045c-2.279 0-4.633 0-6.421.258c-.894.129-1.726.332-2.353.68C3.528 6.802 3 7.389 3 8.25c0 .659.339 1.164.757 1.518c.407.345.929.585 1.442.756c1.032.344 2.24.476 3.05.476H9V9.5h-.75c-.69 0-1.731-.117-2.575-.399c-.424-.141-.746-.307-.948-.478c-.191-.162-.227-.281-.227-.373c0-.137.05-.3.41-.5c.384-.214.998-.386 1.838-.507C8.417 7.002 10.668 7 13 7h.045c2.279 0 4.634 0 6.421-.257c.894-.13 1.726-.332 2.354-.681c.652-.363 1.18-.949 1.18-1.812c0-1.017-.782-1.61-1.538-1.94c-.78-.34-1.805-.534-2.865-.65c-1.924-.21-4.19-.184-5.839-.166l-.515.006a.75.75 0 1 0 .014 1.5zM13.75 8A2.75 2.75 0 0 0 11 10.75v5.337c-1.276-.471-2.382-.479-3.297-.131c-1.16.44-1.86 1.391-2.165 2.307a.75.75 0 0 0 .346.892l4.555 2.551a6.25 6.25 0 0 1 2.373 2.352l.353.618a2.75 2.75 0 0 0 2.813 1.353l2.781-.435a2.75 2.75 0 0 0 2.264-2.138l1.029-4.772a3.75 3.75 0 0 0-3.153-4.506l-2.399-.331v-3.096A2.75 2.75 0 0 0 13.75 8m-1.25 2.75a1.25 1.25 0 1 1 2.5 0v3.75a.75.75 0 0 0 .647.743l3.047.421a2.25 2.25 0 0 1 1.891 2.703l-1.029 4.773a1.25 1.25 0 0 1-1.029.972l-2.781.435a1.25 1.25 0 0 1-1.279-.615l-.353-.618a7.75 7.75 0 0 0-2.942-2.917l-3.947-2.21c.233-.359.57-.662 1.01-.829c.642-.244 1.66-.255 3.16.553a.75.75 0 0 0 1.105-.66z"/></svg>
+        </button>
+        <button class="tool-icon" data-tool="palette" id="toolPalette">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 22q-2.05 0-3.875-.788t-3.187-2.15t-2.15-3.187T2 12q0-2.075.813-3.9t2.2-3.175T8.25 2.788T12.2 2q2 0 3.775.688t3.113 1.9t2.125 2.875T22 11.05q0 2.875-1.75 4.413T16 17h-1.85q-.225 0-.312.125t-.088.275q0 .3.375.863t.375 1.287q0 1.25-.687 1.85T12 22m-4.425-9.425Q8 12.15 8 11.5t-.425-1.075T6.5 10t-1.075.425T5 11.5t.425 1.075T6.5 13t1.075-.425m3-4Q11 8.15 11 7.5t-.425-1.075T9.5 6t-1.075.425T8 7.5t.425 1.075T9.5 9t1.075-.425m5 0Q16 8.15 16 7.5t-.425-1.075T14.5 6t-1.075.425T13 7.5t.425 1.075T14.5 9t1.075-.425m3 4Q19 12.15 19 11.5t-.425-1.075T17.5 10t-1.075.425T16 11.5t.425 1.075T17.5 13t1.075-.425M12 20q.225 0 .363-.125t.137-.325q0-.35-.375-.825T11.75 17.3q0-1.05.725-1.675T14.25 15H16q1.65 0 2.825-.962T20 11.05q0-3.025-2.312-5.038T12.2 4Q8.8 4 6.4 6.325T4 12q0 3.325 2.338 5.663T12 20"/></svg>
+        </button>
+        <button class="tool-icon" data-tool="settings" id="toolSettings">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="8" x2="20" y2="8"/><circle cx="10" cy="8" r="2.5" fill="currentColor" stroke="none"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="15" cy="16" r="2.5" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <div class="tool-divider"></div>
+        <button class="tool-icon" data-tool="music" id="toolMusic">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M5.98 21.5q1.34 0 2.23-.756q.892-.755 1.398-2.14q.386-1.096.87-1.702t1.845-1.686q1.512-1.212 2.335-2.72T15.48 9q0-2.783-1.859-4.641T8.981 2.5q-2.667 0-4.488 1.695T2.52 8.5h1q.154-2.183 1.707-3.591T8.981 3.5q2.317 0 3.909 1.591Q14.48 6.683 14.48 9q0 1.777-.8 3.16q-.8 1.382-2.068 2.351q-1.185.893-1.824 1.687t-1.084 1.96q-.427 1.119-1.04 1.73t-1.683.612q-.883 0-1.566-.568q-.684-.568-.857-1.432H2.519q.173 1.285 1.147 2.142q.972.858 2.315.858m4.506-10.997q.61-.612.61-1.503q0-.896-.61-1.506t-1.506-.61t-1.506.61T6.865 9q0 .89.61 1.503t1.506.613t1.506-.613m7.917 3.33l-.764-.744q.398-.945.62-1.957q.22-1.013.22-2.113q0-1.08-.21-2.09q-.212-1.01-.61-1.954l.763-.764q.514 1.091.786 2.296T19.48 9q0 1.314-.282 2.518t-.795 2.315m2.944 2.9l-.725-.72q.898-1.538 1.378-3.297t.48-3.666q0-1.93-.49-3.684q-.489-1.752-1.393-3.31l.73-.731q1.034 1.685 1.593 3.64q.56 1.954.56 4.074t-.56 4.064t-1.573 3.63"/></svg>
+        </button>
+        <button class="tool-icon" data-tool="create" id="toolCreate">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 14v-2a6 6 0 0 1 6-6h24a6 6 0 0 1 6 6v2m-10 4v12m8-10v8M24 15v18m-8-15v12M8 20v8m-2 6v2a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-2"/></svg>
+        </button>
+    </div>
+
+    <!-- Контентная панель (выезжает справа от тулбара) -->
+    <div class="side-panel" id="sidePanel">
+        <!-- Режимы -->
+        <div class="sp-page" id="spModes">
+            <div class="modes-grid" id="modesList"></div>
+        </div>
+        <!-- Палитры -->
+        <div class="sp-page" id="spPalette">
+            <div class="palette-list" id="paletteList"></div>
+        </div>
+        <!-- Настройки -->
+        <div class="sp-page" id="spSettings">
+            <div class="sp-section-label">Полотно</div>
+            <div class="sub-modes" id="dimensionBtns">
+                <div class="sub-btn active" data-dim="0">2D</div>
+                <div class="sub-btn" data-dim="1">3D</div>
             </div>
-            <!-- Ручной: список режимов -->
-            <div id="normalUI">
-                <div class="sec" id="modeSection">
-                    <div class="sec-head" id="modeHeader"><div class="sec-left"><div class="sec-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4"/></svg></div><span class="sec-label">Режим</span></div><span class="sec-val" id="modeCurrent">Вихрь</span><span class="sec-arrow">▾</span></div>
-                    <div class="sec-body"><div class="opts" id="modeList"></div></div>
+            <div id="shapeSection2D">
+                <div class="sub-modes" id="shapeBtns">
+                    <div class="sub-btn active" data-shape="0">Плоскость</div>
+                    <div class="sub-btn" data-shape="1">Сфера</div>
+                    <div class="sub-btn" data-shape="2">Куб</div>
+                    <div class="sub-btn" data-shape="3">Тетраэдр</div>
+                    <div class="sub-btn" data-shape="4">Тор</div>
                 </div>
             </div>
-            <!-- Музыка: список визуализаций -->
-            <div id="musicUI" class="hidden">
-                <div class="sec" id="musicModeSection">
-                    <div class="sec-head" id="musicModeHeader"><div class="sec-left"><div class="sec-icon"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div><span class="sec-label">Визуализация</span></div><span class="sec-val" id="musicModeCurrent">Свободный поток</span><span class="sec-arrow">▾</span></div>
-                    <div class="sec-body"><div class="opts" id="musicModeList"></div></div>
+            <div id="shapeSection3D" style="display:none">
+                <div class="sub-modes" id="shape3DBtns">
+                    <div class="sub-btn active" data-shape="0">Сфера</div>
                 </div>
-                <!-- Плеер -->
-                <div class="player">
-                    <label>Аудио</label>
-                    <div class="player-upload"><div class="player-upload-btn" id="musicUploadBtn">Загрузить</div><span class="player-fname" id="musicFilename">не выбран</span><input type="file" id="musicFile" accept="audio/*" style="display:none"></div>
-                    <div class="player-controls"><button class="player-btn" id="musicPlayBtn">▶</button><span class="player-time" id="musicTimeNow">0:00</span><input type="range" class="ctrl-slider" id="musicSeek" min="0" max="100" value="0" step="0.1"><span class="player-time" id="musicTimeDur">0:00</span></div>
-                    <div class="player-vol"><span class="player-vol-icon">♪</span><input type="range" class="ctrl-slider" id="musicVol" min="0" max="100" value="70" step="1"></div>
+                <div class="sp-section-label">Деформация</div>
+                <div class="sub-modes" id="deformBtns">
+                    <div class="sub-btn active" data-sub="0">Дыхание</div>
+                    <div class="sub-btn" data-sub="1">Волны</div>
+                    <div class="sub-btn" data-sub="2">Складки</div>
+                    <div class="sub-btn" data-sub="3">Мандала</div>
+                    <div class="sub-btn" data-sub="4">Вихрь</div>
                 </div>
+                <div class="ctrl-row"><span class="ctrl-label">Амплитуда</span><input type="range" class="ctrl-slider" id="deformAmpSlider" min="5" max="80" value="30" step="1"><span class="ctrl-value" id="deformAmpVal">0.3</span></div>
+                <div class="ctrl-row"><span class="ctrl-label">Частота</span><input type="range" class="ctrl-slider" id="deformFreqSlider" min="1" max="12" value="3" step="1"><span class="ctrl-value" id="deformFreqVal">3</span></div>
+                <div class="ctrl-row"><span class="ctrl-label">Размер</span><input type="range" class="ctrl-slider" id="deformRadSlider" min="20" max="90" value="36" step="1"></div>
+                <div class="ctrl-row"><span class="ctrl-label">Вращение</span><input type="range" class="ctrl-slider" id="deformRotSlider" min="0" max="200" value="50" step="1"></div>
+                <div class="ctrl-row"><span class="ctrl-label">Наклон</span><input type="range" class="ctrl-slider" id="deformTiltSlider" min="0" max="150" value="35" step="1"></div>
             </div>
-            <!-- Палитра -->
-            <div class="sec" id="paletteSection">
-                <div class="sec-head" id="paletteHeader"><div class="sec-left"><div class="sec-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="8" r="1.5"/><circle cx="8" cy="13" r="1.5"/><circle cx="15" cy="14" r="1.5"/></svg></div><span class="sec-label">Палитра</span></div><span class="sec-val" id="paletteCurrent">4K UI</span><span class="sec-arrow">▾</span></div>
-                <div class="sec-body"><div class="opts" id="paletteList"></div></div>
+            <div id="settingsCommon">
+            <div class="sp-section-label">Общие</div>
+            <div class="ctrl-row"><span class="ctrl-label">Вращение</span><div class="ctrl-btns"><button class="ctrl-btn active" id="dirCW"><svg viewBox="0 0 16 16" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M11 3l2 2-2 2"/><path d="M13 5H7a4 4 0 100 8h1"/></svg></button><button class="ctrl-btn" id="dirCCW"><svg viewBox="0 0 16 16" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M5 3L3 5l2 2"/><path d="M3 5h6a4 4 0 110 8H8"/></svg></button></div></div>
+            <div class="ctrl-row"><span class="ctrl-label">Скорость</span><input type="range" class="ctrl-slider" id="speedSlider" min="0" max="200" value="100" step="1"></div>
+            <div class="ctrl-row"><span class="ctrl-label">Масштаб</span><input type="range" class="ctrl-slider" id="zoomSlider" min="30" max="100" value="100" step="1"></div>
+            <div class="ctrl-row"><span class="ctrl-label">Яркость</span><input type="range" class="ctrl-slider" id="brightnessSlider" min="20" max="200" value="100" step="1"></div>
+            <div class="ctrl-row"><span class="ctrl-label">Плотность</span><input type="range" class="ctrl-slider" id="gapSlider" min="2" max="8" value="3" step="1"></div>
+            <div class="sp-section-label" id="modeSettingsLabel" style="display:none"></div>
+            <div id="modeSettings"></div>
+            </div><!-- settingsCommon -->
+        </div>
+        <!-- Музыка -->
+        <div class="sp-page" id="spMusic">
+            <div class="flow-upload-area" id="flowUploadArea">
+                <div class="flow-upload-icon">＋</div>
+                <span class="flow-upload-text" id="flowUploadText">Загрузить трек</span>
             </div>
-            <!-- Настройки -->
-            <div class="sec" id="settingsSection">
-                <div class="sec-head" id="settingsHeader"><div class="sec-left"><div class="sec-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></div><span class="sec-label">Настройки</span></div><span class="sec-arrow">▾</span></div>
-                <div class="sec-body">
-                    <div class="ctrl-row"><span class="ctrl-label">Вращение</span><div class="ctrl-btns"><button class="ctrl-btn active" id="dirCW"><svg viewBox="0 0 16 16" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M11 3l2 2-2 2"/><path d="M13 5H7a4 4 0 100 8h1"/></svg></button><button class="ctrl-btn" id="dirCCW"><svg viewBox="0 0 16 16" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M5 3L3 5l2 2"/><path d="M3 5h6a4 4 0 110 8H8"/></svg></button></div></div>
-                    <div class="ctrl-row"><span class="ctrl-label">Скорость</span><input type="range" class="ctrl-slider" id="speedSlider" min="0" max="200" value="100" step="1"></div>
-                    <div class="ctrl-row"><span class="ctrl-label">Масштаб</span><input type="range" class="ctrl-slider" id="zoomSlider" min="30" max="100" value="100" step="1"></div>
-                    <div class="ctrl-row"><span class="ctrl-label">Яркость</span><input type="range" class="ctrl-slider" id="brightnessSlider" min="20" max="200" value="100" step="1"></div>
-                    <div class="ctrl-row"><span class="ctrl-label">Плотность</span><input type="range" class="ctrl-slider" id="gapSlider" min="2" max="8" value="3" step="1"></div>
-                </div>
+            <div class="flow-controls" id="flowControls">
+                <button class="player-btn" id="musicPlayBtn">▶</button>
+                <span class="player-time" id="musicTimeNow">0:00</span>
+                <input type="range" class="ctrl-slider player-seek" id="musicSeek" min="0" max="100" value="0" step="0.1">
+                <span class="player-time" id="musicTimeDur">0:00</span>
+                <span class="player-vol-icon">♪</span>
+                <input type="range" class="ctrl-slider player-vol" id="musicVol" min="0" max="100" value="70" step="1">
             </div>
+            <input type="file" id="musicFile" accept="audio/*" style="display:none">
+            <div class="sp-section-label" style="margin-top:10px">Реагирование</div>
+            <div id="musicParamsContainer"></div>
+        </div>
         </div>
     </div>
-    <button class="mic-prompt" id="micPrompt">Включить микрофон</button>
 
-    <script>
-    // --- Курсор ---
-    const cursorEl=document.getElementById('cursor');
-    if(window.matchMedia('(hover: hover) and (pointer: fine)').matches){
-        document.addEventListener('mousemove',e=>{cursorEl.style.left=e.clientX+'px';cursorEl.style.top=e.clientY+'px';});
-        document.addEventListener('mousedown',()=>cursorEl.classList.add('active'));
-        document.addEventListener('mouseup',()=>cursorEl.classList.remove('active'));
-    }
-    // --- Меню ---
-    const menu=document.getElementById('menu'),menuToggle=document.getElementById('menuToggle'),overlay=document.getElementById('overlay'),sidePanel=document.getElementById('sidePanel');
-    let menuOpen=false;
-    function onTap(el,fn){
-        el.addEventListener('click',fn);
-        el.addEventListener('touchend',function(e){e.preventDefault();e.stopPropagation();fn(e);},{passive:false});
-    }
-    function toggleMenu(){menuOpen=!menuOpen;menu.classList.toggle('open',menuOpen);}
-    onTap(menuToggle,e=>{e.stopPropagation();toggleMenu();});
-    onTap(overlay,toggleMenu);
-    sidePanel.addEventListener('click',e=>e.stopPropagation());
-    sidePanel.addEventListener('mousedown',e=>e.stopPropagation());
-    sidePanel.addEventListener('touchmove',e=>e.stopPropagation(),{passive:true});
-    onTap(document.getElementById('paletteHeader'),e=>{e.stopPropagation();document.getElementById('paletteSection').classList.toggle('open');});
-    onTap(document.getElementById('modeHeader'),e=>{e.stopPropagation();document.getElementById('modeSection').classList.toggle('open');});
-    onTap(document.getElementById('musicModeHeader'),e=>{e.stopPropagation();document.getElementById('musicModeSection').classList.toggle('open');});
-    onTap(document.getElementById('settingsHeader'),e=>{e.stopPropagation();document.getElementById('settingsSection').classList.toggle('open');});
+    <!-- Бит-панель (нижняя, горизонтальная) -->
+    <div class="beat-panel" id="beatPanel">
+        <div class="beat-top">
+            <button class="player-btn" id="beatPlayBtn">▶</button>
+            <span class="beat-bpm-label">BPM</span>
+            <input type="range" class="ctrl-slider beat-bpm-slider" id="beatBpmSlider" min="60" max="200" value="120" step="1">
+            <span class="beat-bpm-val" id="beatBpmVal">120</span>
+            <div class="beat-vol-section">
+                <span class="ctrl-label" style="min-width:auto">Громкость</span>
+                <input type="range" class="ctrl-slider" id="beatVolSlider" min="0" max="100" value="60" step="1" style="width:80px">
+            </div>
+        </div>
+        <div class="beat-grid" id="beatGrid"></div>
+    </div>
 
-    // --- Переключение Ручной / Музыка ---
-    let isMusicView = false;
-    let spinDirection = 1;
-    let spinSpeed = 1;   // множитель скорости вращения
-    let zoomLevel = 1;   // множитель масштаба
-    const tbNormal=document.getElementById('tbNormal'),tbMusic=document.getElementById('tbMusic');
-    const normalUI=document.getElementById('normalUI'),musicUI=document.getElementById('musicUI');
+    <!-- Кастомная палитра -->
+    <aside class="custom-palette-panel" id="customPalettePanel">
+        <div class="cust-title">Своя палитра</div>
+        <div class="custom-preview" id="customPreview"></div>
+        <div class="custom-stops" id="customStops"></div>
+        <div class="custom-actions"><button class="custom-add-btn" id="customAddStop">＋ Цвет</button></div>
+    </aside>
 
-    function switchView(toMusic){
-        isMusicView=toMusic;
-        tbNormal.classList.toggle('active',!toMusic);
-        tbMusic.classList.toggle('active',toMusic);
-        if(toMusic){normalUI.classList.add('hidden');musicUI.classList.remove('hidden');currentMode='music_free';}
-        else{musicUI.classList.add('hidden');normalUI.classList.remove('hidden');currentMode='vortex';document.getElementById('modeCurrent').textContent='Вихрь';}
-        cancelAnimationFrame(animFrame);init();lastTime=performance.now();animFrame=requestAnimationFrame(loop);
-    }
-    onTap(tbNormal,e=>{e.stopPropagation();switchView(false);});
-    onTap(tbMusic,e=>{e.stopPropagation();switchView(true);});
-
-    // Направление вращения
-    const dirCW=document.getElementById('dirCW'),dirCCW=document.getElementById('dirCCW');
-    onTap(dirCW,e=>{e.stopPropagation();spinDirection=1;dirCW.classList.add('active');dirCCW.classList.remove('active');});
-    onTap(dirCCW,e=>{e.stopPropagation();spinDirection=-1;dirCCW.classList.add('active');dirCW.classList.remove('active');});
-
-    // Скорость вращения
-    const speedSlider=document.getElementById('speedSlider');
-    speedSlider.addEventListener('input',e=>{e.stopPropagation();spinSpeed=+speedSlider.value/100;});
-    speedSlider.addEventListener('touchstart',e=>e.stopPropagation());
-
-    // Масштаб (zoom)
-    const zoomSlider=document.getElementById('zoomSlider');
-    zoomSlider.addEventListener('input',e=>{e.stopPropagation();zoomLevel=+zoomSlider.value/100;});
-    zoomSlider.addEventListener('touchstart',e=>e.stopPropagation());
-
-    // Яркость
-    let brightnessLevel=1;
-    const brightnessSlider=document.getElementById('brightnessSlider');
-    brightnessSlider.addEventListener('input',e=>{e.stopPropagation();brightnessLevel=+brightnessSlider.value/100;});
-    brightnessSlider.addEventListener('touchstart',e=>e.stopPropagation());
-
-    // Плотность (gap) — перестраивает сетку
-    let userGap=3;
-    const gapSlider=document.getElementById('gapSlider');
-    gapSlider.addEventListener('input',e=>{e.stopPropagation();userGap=+gapSlider.value;cancelAnimationFrame(animFrame);init();lastTime=performance.now();animFrame=requestAnimationFrame(loop);});
-    gapSlider.addEventListener('touchstart',e=>e.stopPropagation());
-
-    // --- Обычные режимы ---
-    const visualModes=['fractal_mirror','parallax','sphere_depth','trails','echo','chromatic','glitch','double_exp','mandala_6','mandala_8','mandala_12','mandala_test','mandala_pulse'];
-    const modeCategories=[
-        {name:'Физические',modes:[{key:'vortex',name:'Вихрь',icon:'🌀'},{key:'blackhole',name:'Чёрная дыра',icon:'🕳️'},{key:'horizon',name:'Горизонт событий',icon:'⏳'},{key:'antigravity',name:'Антигравитация',icon:'💥'},{key:'gravlens',name:'Гравитационная линза',icon:'🔭'},{key:'magnetic',name:'Магнитное поле',icon:'🧲'},{key:'turbulence',name:'Турбулентность',icon:'💧'},{key:'electrostatic',name:'Электростатика',icon:'⚡'},{key:'pendulum',name:'Двойной маятник',icon:'⚖️'}]},
-        {name:'Волновые',modes:[{key:'wave',name:'Волна',icon:'🌊'},{key:'moire',name:'Муар',icon:'🔮'},{key:'pulsar',name:'Пульсар',icon:'💫'},{key:'fabric',name:'Ткань',icon:'🧶'}]},
-        {name:'Математические',modes:[{key:'fibonacci',name:'Спираль Фибоначчи',icon:'🐚'},{key:'lorenz',name:'Аттрактор Лоренца',icon:'🦋'},{key:'automaton',name:'Клеточный автомат',icon:'🧬'},{key:'reaction',name:'Реакция-диффузия',icon:'🧪'},{key:'fractal',name:'Фрактальная пыль',icon:'✳️'}]},
-        {name:'Биологические',modes:[{key:'mycelium',name:'Мицелий',icon:'🍄'},{key:'plankton',name:'Планктон',icon:'🦠'},{key:'swarm',name:'Рой',icon:'🐝'},{key:'flock',name:'Стая птиц',icon:'🕊️'}]},
-        {name:'Психоделические',modes:[{key:'kaleidoscope',name:'Калейдоскоп',icon:'🫧'},{key:'breathing',name:'Дыхание',icon:'👁️'},{key:'melting',name:'Плавление',icon:'🕰️'}]},
-        {name:'Интерактивные',modes:[{key:'sound',name:'Реакция на звук',icon:'🎤'}]},
-        {name:'Мандала',modes:[{key:'mandala_6',name:'Мандала 6',icon:'🔯'},{key:'mandala_8',name:'Мандала 8',icon:'✡️'},{key:'mandala_12',name:'Мандала 12',icon:'❄️'},{key:'mandala_test',name:'Мандала Тест',icon:'🧪'},{key:'mandala_pulse',name:'Мандала Пульс',icon:'💗'}]},
-        {name:'Тестовые',modes:[{key:'fractal_mirror',name:'Фрактальное зеркало',icon:'🪞'},{key:'parallax',name:'Параллакс',icon:'🌐'},{key:'sphere_depth',name:'Сфера',icon:'🔮'},{key:'trails',name:'Кометные хвосты',icon:'🌠'},{key:'echo',name:'Эхо',icon:'👻'},{key:'chromatic',name:'Хроматическая аберрация',icon:'🌈'},{key:'glitch',name:'Глитч',icon:'⚡'},{key:'double_exp',name:'Двойная экспозиция',icon:'🔄'}]},
-    ];
-    let currentMode='vortex';
-    function getPhysicsMode(){if(currentMode==='mandala_pulse')return'mandala_pulse';if(visualModes.includes(currentMode))return'vortex';if(currentMode.startsWith('music_'))return currentMode;return currentMode;}
-    function buildModeList(){const list=document.getElementById('modeList');list.innerHTML='';modeCategories.forEach(cat=>{const t=document.createElement('div');t.className='cat-title';t.textContent=cat.name;list.appendChild(t);cat.modes.forEach(mode=>{const d=document.createElement('div');d.className='opt'+(mode.key===currentMode?' active':'');d.innerHTML='<span class="opt-name">'+mode.name+'</span>';onTap(d,function(e){e.stopPropagation();currentMode=mode.key;document.getElementById('modeCurrent').textContent=mode.name;updateMicPrompt();buildModeList();});list.appendChild(d);});});}
-    buildModeList();
-
-    // --- Музыкальные режимы ---
-    const musicModes=[{key:'music_free',name:'Свободный поток',icon:'🌊'},{key:'music_mandala',name:'Мандала',icon:'🔮'},{key:'music_wave',name:'Волновой',icon:'📊'}];
-    function buildMusicModeList(){const list=document.getElementById('musicModeList');list.innerHTML='';musicModes.forEach(mode=>{const d=document.createElement('div');d.className='opt'+(mode.key===currentMode?' active':'');d.innerHTML='<span class="opt-name">'+mode.name+'</span>';onTap(d,function(e){e.stopPropagation();currentMode=mode.key;document.getElementById('musicModeCurrent').textContent=mode.name;buildMusicModeList();});list.appendChild(d);});}
-    buildMusicModeList();
-
-    // --- Микрофон ---
-    const micPrompt=document.getElementById('micPrompt');
-    let audioCtx=null,analyser=null,micStream=null,frequencyData=null,micActive=false;
-    async function enableMic(){if(micActive)return;try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();micStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});const s=audioCtx.createMediaStreamSource(micStream);analyser=audioCtx.createAnalyser();analyser.fftSize=256;analyser.smoothingTimeConstant=.7;s.connect(analyser);frequencyData=new Uint8Array(analyser.frequencyBinCount);micActive=true;micPrompt.classList.remove('show');}catch(e){}}
-    onTap(micPrompt,e=>{e.stopPropagation();if(micActive){if(micStream)micStream.getTracks().forEach(t=>t.stop());if(audioCtx)audioCtx.close();audioCtx=null;analyser=null;micStream=null;micActive=false;}else enableMic();});
-    function getMicForce(){if(!micActive||!analyser)return 0;analyser.getByteFrequencyData(frequencyData);let s=0;for(let i=0;i<frequencyData.length;i++)s+=frequencyData[i];return s/(frequencyData.length*255);}
-    function updateMicPrompt(){if(currentMode==='sound')micPrompt.classList.add('show');else micPrompt.classList.remove('show');}
-    updateMicPrompt();
-
-    // --- Музыкальный плеер ---
-    let musicCtx=null,musicAnalyser=null,musicSource=null,musicGain=null;
-    let musicAudio=null,musicFreqData=null,musicPlaying=false;
-    const musicBands={bass:0,lowMid:0,mid:0,highMid:0,high:0,energy:0,flux:0};
-    let prevSpectrum=null;
-    const musicFile=document.getElementById('musicFile'),musicUploadBtn=document.getElementById('musicUploadBtn'),musicPlayBtn=document.getElementById('musicPlayBtn'),musicSeek=document.getElementById('musicSeek'),musicVol=document.getElementById('musicVol'),musicFilename=document.getElementById('musicFilename'),musicTimeNow=document.getElementById('musicTimeNow'),musicTimeDur=document.getElementById('musicTimeDur');
-    onTap(musicUploadBtn,e=>{e.stopPropagation();musicFile.click();});
-    musicFile.addEventListener('change',function(e){e.stopPropagation();const file=this.files[0];if(!file)return;musicFilename.textContent=file.name.length>20?file.name.slice(0,18)+'…':file.name;if(musicAudio){musicAudio.pause();musicPlaying=false;musicPlayBtn.textContent='▶';}musicAudio=new Audio();musicAudio.src=URL.createObjectURL(file);musicAudio.volume=musicVol.value/100;musicAudio.addEventListener('loadedmetadata',()=>{musicTimeDur.textContent=fmtTime(musicAudio.duration);musicSeek.max=musicAudio.duration;});musicAudio.addEventListener('ended',()=>{musicPlaying=false;musicPlayBtn.textContent='▶';musicPlayBtn.classList.remove('playing');});musicAudio.addEventListener('timeupdate',()=>{if(!musicSeeking){musicSeek.value=musicAudio.currentTime;musicTimeNow.textContent=fmtTime(musicAudio.currentTime);}});if(!musicCtx)musicCtx=new(window.AudioContext||window.webkitAudioContext)();if(musicSource)try{musicSource.disconnect();}catch(x){}musicSource=musicCtx.createMediaElementSource(musicAudio);musicAnalyser=musicCtx.createAnalyser();musicAnalyser.fftSize=512;musicAnalyser.smoothingTimeConstant=.75;musicGain=musicCtx.createGain();musicGain.gain.value=musicVol.value/100;musicSource.connect(musicAnalyser);musicAnalyser.connect(musicGain);musicGain.connect(musicCtx.destination);musicFreqData=new Uint8Array(musicAnalyser.frequencyBinCount);prevSpectrum=new Float32Array(musicAnalyser.frequencyBinCount);});
-    let musicSeeking=false;
-    musicSeek.addEventListener('mousedown',()=>musicSeeking=true);musicSeek.addEventListener('touchstart',e=>{e.stopPropagation();musicSeeking=true;});musicSeek.addEventListener('input',e=>{e.stopPropagation();if(musicAudio)musicTimeNow.textContent=fmtTime(+musicSeek.value);});musicSeek.addEventListener('change',e=>{e.stopPropagation();if(musicAudio)musicAudio.currentTime=+musicSeek.value;musicSeeking=false;});musicSeek.addEventListener('mouseup',()=>musicSeeking=false);musicSeek.addEventListener('touchend',e=>{e.stopPropagation();musicSeeking=false;});
-    musicVol.addEventListener('input',e=>{e.stopPropagation();if(musicAudio)musicAudio.volume=musicVol.value/100;if(musicGain)musicGain.gain.value=musicVol.value/100;});musicVol.addEventListener('touchstart',e=>e.stopPropagation());
-    onTap(musicPlayBtn,e=>{e.stopPropagation();if(!musicAudio||!musicAudio.src)return;if(musicCtx&&musicCtx.state==='suspended')musicCtx.resume();if(musicPlaying){musicAudio.pause();musicPlaying=false;musicPlayBtn.textContent='▶';musicPlayBtn.classList.remove('playing');}else{musicAudio.play();musicPlaying=true;musicPlayBtn.textContent='⏸';musicPlayBtn.classList.add('playing');}});
-    function fmtTime(s){if(!s||isNaN(s))return'0:00';const m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+(sec<10?'0':'')+sec;}
-    function analyzeMusic(){if(!musicAnalyser||!musicPlaying||!musicFreqData)return;musicAnalyser.getByteFrequencyData(musicFreqData);const n=musicFreqData.length,sr=musicCtx.sampleRate,binHz=sr/musicAnalyser.fftSize;const bassEnd=Math.min(n,Math.floor(250/binHz)),lowMidEnd=Math.min(n,Math.floor(1000/binHz)),midEnd=Math.min(n,Math.floor(4000/binHz)),highMidEnd=Math.min(n,Math.floor(12000/binHz));let bass=0,lowMid=0,mid=0,highMid=0,high=0,total=0,flux=0;for(let i=0;i<n;i++){const v=musicFreqData[i]/255;total+=v;if(i<bassEnd)bass+=v;else if(i<lowMidEnd)lowMid+=v;else if(i<midEnd)mid+=v;else if(i<highMidEnd)highMid+=v;else high+=v;const diff=v-prevSpectrum[i];if(diff>0)flux+=diff;prevSpectrum[i]=v;}musicBands.bass=bassEnd>0?bass/bassEnd:0;musicBands.lowMid=(lowMidEnd-bassEnd)>0?lowMid/(lowMidEnd-bassEnd):0;musicBands.mid=(midEnd-lowMidEnd)>0?mid/(midEnd-lowMidEnd):0;musicBands.highMid=(highMidEnd-midEnd)>0?highMid/(highMidEnd-midEnd):0;musicBands.high=(n-highMidEnd)>0?high/(n-highMidEnd):0;musicBands.energy=n>0?total/n:0;musicBands.flux=Math.min(1,flux/20);}
-
-    // --- Палитры ---
-    const palettes={default:{name:'4K UI',swatch:'linear-gradient(to right,#4a47a3,#7b2cbf,#e63946,#f4a261,#2a9d8f,#48cae4,#3a5a9f)',stops:[{pos:0,h:250,s:.85,v:1},{pos:.12,h:265,s:.8,v:1},{pos:.25,h:290,s:.75,v:1},{pos:.38,h:330,s:.7,v:1},{pos:.5,h:5,s:.8,v:1},{pos:.62,h:30,s:.85,v:1},{pos:.75,h:160,s:.75,v:1},{pos:.88,h:195,s:.8,v:1},{pos:1,h:225,s:.85,v:1}]},ocean:{name:'Океан',swatch:'linear-gradient(to right,#00b4d8,#0077b6,#03045e)',stops:[{pos:0,h:195,s:.9,v:1},{pos:.25,h:200,s:.85,v:.95},{pos:.5,h:210,s:.9,v:.9},{pos:.75,h:220,s:.95,v:.85},{pos:1,h:235,s:1,v:.7}]},sunset:{name:'Закат',swatch:'linear-gradient(to right,#ff9f1c,#ff4d6d,#7209b7)',stops:[{pos:0,h:35,s:.9,v:1},{pos:.2,h:20,s:.85,v:1},{pos:.4,h:5,s:.8,v:.95},{pos:.6,h:340,s:.75,v:.9},{pos:.8,h:310,s:.8,v:.8},{pos:1,h:280,s:.85,v:.65}]},forest:{name:'Лес',swatch:'linear-gradient(to right,#a7c957,#386641,#1b4332)',stops:[{pos:0,h:80,s:.7,v:.9},{pos:.3,h:120,s:.65,v:.8},{pos:.55,h:150,s:.7,v:.7},{pos:.75,h:160,s:.6,v:.55},{pos:1,h:170,s:.5,v:.35}]},neon:{name:'Неон',swatch:'linear-gradient(to right,#f72585,#b5179e,#7209b7,#4cc9f0)',stops:[{pos:0,h:320,s:1,v:1},{pos:.25,h:290,s:1,v:1},{pos:.5,h:260,s:1,v:1},{pos:.75,h:195,s:1,v:1},{pos:1,h:170,s:1,v:1}]},fire:{name:'Огонь',swatch:'linear-gradient(to right,#ffea00,#ff9100,#d00000,#1a0000)',stops:[{pos:0,h:55,s:1,v:1},{pos:.25,h:40,s:1,v:1},{pos:.5,h:20,s:1,v:.95},{pos:.7,h:5,s:1,v:.85},{pos:.85,h:350,s:.9,v:.6},{pos:1,h:340,s:.8,v:.15}]},cosmic:{name:'Космос',swatch:'linear-gradient(to right,#e0aaff,#7b2cbf,#10002b)',stops:[{pos:0,h:280,s:.7,v:1},{pos:.3,h:270,s:.8,v:.9},{pos:.6,h:255,s:.9,v:.7},{pos:.85,h:245,s:.85,v:.4},{pos:1,h:240,s:.8,v:.1}]},midnight:{name:'Полночь',swatch:'linear-gradient(to right,#5c4d7d,#2c3e50,#0d1b2a)',stops:[{pos:0,h:240,s:.5,v:.7},{pos:.3,h:235,s:.6,v:.55},{pos:.6,h:225,s:.5,v:.4},{pos:.85,h:215,s:.4,v:.25},{pos:1,h:210,s:.3,v:.12}]},candy:{name:'Конфеты',swatch:'linear-gradient(to right,#ff99c8,#fcf6bd,#d0f4de,#a9def9,#e4c1f9)',stops:[{pos:0,h:345,s:.7,v:1},{pos:.2,h:50,s:.5,v:1},{pos:.4,h:80,s:.4,v:1},{pos:.6,h:160,s:.5,v:1},{pos:.8,h:200,s:.5,v:1},{pos:1,h:290,s:.5,v:1}]},mono:{name:'Монохром',swatch:'linear-gradient(to right,#fff,#888,#111)',stops:[{pos:0,h:0,s:0,v:1},{pos:.5,h:0,s:0,v:.5},{pos:1,h:0,s:0,v:.05}]},aurora:{name:'Северное сияние',swatch:'linear-gradient(to right,#06d6a0,#118ab2,#7209b7,#f72585)',stops:[{pos:0,h:160,s:.9,v:.9},{pos:.3,h:195,s:.85,v:.85},{pos:.6,h:270,s:.8,v:.8},{pos:.85,h:330,s:.75,v:.9},{pos:1,h:345,s:.8,v:1}]},desert:{name:'Пустыня',swatch:'linear-gradient(to right,#e9c46a,#e76f51,#c1121f,#780000)',stops:[{pos:0,h:45,s:.7,v:.95},{pos:.3,h:25,s:.8,v:.9},{pos:.6,h:10,s:.85,v:.8},{pos:.85,h:355,s:.9,v:.5},{pos:1,h:350,s:.85,v:.3}]},lavender:{name:'Лаванда',swatch:'linear-gradient(to right,#e0b1ff,#9d4edd,#3c096c)',stops:[{pos:0,h:280,s:.5,v:1},{pos:.35,h:275,s:.7,v:.85},{pos:.65,h:270,s:.8,v:.6},{pos:1,h:265,s:.9,v:.3}]},tropics:{name:'Тропики',swatch:'linear-gradient(to right,#a7c957,#ffca3a,#ff924c,#f65c78)',stops:[{pos:0,h:80,s:.7,v:.9},{pos:.3,h:50,s:.8,v:1},{pos:.6,h:25,s:.85,v:1},{pos:1,h:350,s:.75,v:.95}]},deepspace:{name:'Глубокий космос',swatch:'linear-gradient(to right,#000,#0b0b3b,#3a0ca3,#f0f0f0)',stops:[{pos:0,h:240,s:.5,v:.02},{pos:.3,h:240,s:.8,v:.25},{pos:.6,h:260,s:.9,v:.6},{pos:1,h:0,s:0,v:.95}]},watercolor:{name:'Акварель',swatch:'linear-gradient(to right,#ffc8dd,#ffd6a5,#b9fbc0,#a0c4ff)',stops:[{pos:0,h:345,s:.4,v:1},{pos:.3,h:35,s:.35,v:1},{pos:.6,h:140,s:.35,v:1},{pos:1,h:205,s:.4,v:1}]},metallic:{name:'Металлик',swatch:'linear-gradient(to right,#e0e0e0,#9e9e9e,#424242,#1a1a1a)',stops:[{pos:0,h:0,s:0,v:.9},{pos:.3,h:0,s:0,v:.65},{pos:.6,h:0,s:0,v:.35},{pos:1,h:0,s:0,v:.08}]},vintage:{name:'Винтаж',swatch:'linear-gradient(to right,#d4a373,#a3b18a,#588157,#6c757d)',stops:[{pos:0,h:35,s:.5,v:.85},{pos:.3,h:80,s:.3,v:.7},{pos:.6,h:120,s:.4,v:.55},{pos:1,h:210,s:.15,v:.5}]},cyberpunk:{name:'Киберпанк',swatch:'linear-gradient(to right,#f72585,#4cc9f0,#f7e600,#000)',stops:[{pos:0,h:330,s:.9,v:1},{pos:.3,h:195,s:.8,v:1},{pos:.6,h:55,s:1,v:1},{pos:1,h:0,s:0,v:0}]},mountain:{name:'Рассвет в горах',swatch:'linear-gradient(to right,#3c096c,#9d4edd,#ff6d6d,#ffca3a)',stops:[{pos:0,h:265,s:.9,v:.3},{pos:.3,h:275,s:.7,v:.6},{pos:.6,h:355,s:.7,v:.9},{pos:1,h:50,s:.8,v:1}]}};
-    let currentPalette='default',currentStops=JSON.parse(JSON.stringify(palettes.default.stops)),targetStops=JSON.parse(JSON.stringify(palettes.default.stops)),transitionProgress=1;
-    function lerpStops(a,b,t){const m=Math.max(a.length,b.length),r=[];for(let i=0;i<m;i++){const sa=a[Math.min(i,a.length-1)],sb=b[Math.min(i,b.length-1)];let h1=sa.h,h2=sb.h,d=h2-h1;if(d>180)h1+=360;else if(d<-180)h2+=360;r.push({pos:sa.pos+(sb.pos-sa.pos)*t,h:(h1+(h2-h1)*t+360)%360,s:sa.s+(sb.s-sa.s)*t,v:sa.v+(sb.v-sa.v)*t});}return r;}
-    function normalizeStops(stops){const o=[];for(let i=0;i<9;i++){const t=i/8;let lo=0,hi=stops.length-1;for(let j=0;j<stops.length-1;j++){if(t>=stops[j].pos&&t<=stops[j+1].pos){lo=j;hi=j+1;break;}}if(t<=stops[0].pos){o.push({...stops[0],pos:t});continue;}if(t>=stops[stops.length-1].pos){o.push({...stops[stops.length-1],pos:t});continue;}const s=(t-stops[lo].pos)/(stops[hi].pos-stops[lo].pos||1);let h1=stops[lo].h,h2=stops[hi].h,d=h2-h1;if(d>180)h1+=360;else if(d<-180)h2+=360;o.push({pos:t,h:(h1+(h2-h1)*s+360)%360,s:stops[lo].s+(stops[hi].s-stops[lo].s)*s,v:stops[lo].v+(stops[hi].v-stops[lo].v)*s});}return o;}
-    function buildPaletteList(){const list=document.getElementById('paletteList');list.innerHTML='';Object.keys(palettes).forEach(key=>{const p=palettes[key];const d=document.createElement('div');d.className='opt'+(key===currentPalette?' active':'');d.innerHTML='<div class="swatch" style="background:'+p.swatch+';"></div><span class="opt-name">'+p.name+'</span>';onTap(d,function(e){e.stopPropagation();if(transitionProgress>=1)currentStops=JSON.parse(JSON.stringify(currentStops));else currentStops=lerpStops(currentStops,targetStops,transitionProgress);targetStops=JSON.parse(JSON.stringify(palettes[key].stops));transitionProgress=0;currentPalette=key;document.getElementById('paletteCurrent').textContent=p.name;buildPaletteList();});list.appendChild(d);});}
-    buildPaletteList();
-
-    // --- WebGL ---
-    const glCanvas=document.getElementById('glCanvas'),c2dCanvas=document.getElementById('c2dCanvas');
-    let useWebGL=true,gl=null,ctx2d=null,hasPreserve=false;
-    try{gl=glCanvas.getContext('webgl',{alpha:false,antialias:false,preserveDrawingBuffer:true});if(!gl)gl=glCanvas.getContext('webgl',{alpha:false,antialias:false});if(!gl)gl=glCanvas.getContext('experimental-webgl',{alpha:false});}catch(e){gl=null;}
-    if(!gl){useWebGL=false;glCanvas.classList.add('hidden');c2dCanvas.classList.remove('hidden');ctx2d=c2dCanvas.getContext('2d');}else{hasPreserve=!!(gl.getContextAttributes()&&gl.getContextAttributes().preserveDrawingBuffer);c2dCanvas.classList.add('hidden');}
-    const vertSrc=`precision mediump float;attribute vec2 a_position;attribute float a_hue;uniform vec2 u_resolution;uniform float u_rotation;uniform float u_scale;uniform vec2 u_offset;uniform float u_pointScale;uniform float u_sphereMode;varying float v_hue;void main(){vec2 pos=a_position+u_offset;vec2 center=u_resolution*.5;pos=center+(pos-center)*u_scale;float c=cos(u_rotation),s=sin(u_rotation);pos=center+vec2(c*(pos.x-center.x)-s*(pos.y-center.y),s*(pos.x-center.x)+c*(pos.y-center.y));vec2 clip=(pos/u_resolution)*2.0-1.0;clip.y=-clip.y;gl_Position=vec4(clip,0,1);float basePt=2.5*u_pointScale;if(u_sphereMode>.5){float dfc=length(a_position-center)/length(center);basePt*=(1.4-dfc*.9);}gl_PointSize=basePt;v_hue=a_hue;}`;
-    const fragSrc=`precision mediump float;varying float v_hue;uniform float u_stopH[9];uniform float u_stopS[9];uniform float u_stopV[9];uniform float u_alpha;uniform vec3 u_colorMask;vec3 hsv2rgb(float h,float s,float v){h=mod(h,360.0);float c=v*s;float x=c*(1.0-abs(mod(h/60.0,2.0)-1.0));float m=v-c;vec3 rgb;if(h<60.0)rgb=vec3(c,x,0);else if(h<120.0)rgb=vec3(x,c,0);else if(h<180.0)rgb=vec3(0,c,x);else if(h<240.0)rgb=vec3(0,x,c);else if(h<300.0)rgb=vec3(x,0,c);else rgb=vec3(c,0,x);return rgb+m;}vec3 getPaletteColor(float t){float idx=t*8.0;int lo=int(floor(idx));int hi=lo+1;if(hi>8)hi=8;if(lo<0)lo=0;float frac=idx-float(lo);float h1,s1,v1,h2,s2,v2;for(int i=0;i<9;i++){if(i==lo){h1=u_stopH[i];s1=u_stopS[i];v1=u_stopV[i];}if(i==hi){h2=u_stopH[i];s2=u_stopS[i];v2=u_stopV[i];}}float diff=h2-h1;if(diff>180.0)h1+=360.0;else if(diff<-180.0)h2+=360.0;return hsv2rgb(mix(h1,h2,frac),mix(s1,s2,frac),mix(v1,v2,frac));}void main(){vec2 pc=gl_PointCoord*2.0-1.0;float d=dot(pc,pc);float alpha=exp(-d*2.5)*1.60*u_alpha;if(alpha<0.01)discard;vec3 color=getPaletteColor(v_hue)*u_colorMask;gl_FragColor=vec4(color*alpha,alpha);}`;
-    const quadVertSrc=`precision mediump float;attribute vec2 a_pos;void main(){gl_Position=vec4(a_pos,0,1);}`;
-    const quadFragSrc=`precision mediump float;uniform float u_dim;void main(){gl_FragColor=vec4(0.0,0.0,0.0,u_dim);}`;
-    function mkShader(t,s){if(!gl)return null;const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(sh));return null;}return sh;}
-    function mkProgram(v,f){if(!v||!f)return null;const p=gl.createProgram();gl.attachShader(p,v);gl.attachShader(p,f);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))return null;return p;}
-    let program,quadProgram,aPosition,aHue,uResolution,uStopH,uStopS,uStopV,uAlpha,uColorMask,uRotation,uScale,uOffset,uPointScale,uSphereMode,aQuadPos,uDim,quadBuf,posBuffer,hueBuffer;
-    let contextLost=false;
-    function initGPU(){if(!gl)return false;program=mkProgram(mkShader(gl.VERTEX_SHADER,vertSrc),mkShader(gl.FRAGMENT_SHADER,fragSrc));quadProgram=mkProgram(mkShader(gl.VERTEX_SHADER,quadVertSrc),mkShader(gl.FRAGMENT_SHADER,quadFragSrc));if(!program||!quadProgram)return false;aPosition=gl.getAttribLocation(program,'a_position');aHue=gl.getAttribLocation(program,'a_hue');uResolution=gl.getUniformLocation(program,'u_resolution');uStopH=gl.getUniformLocation(program,'u_stopH');uStopS=gl.getUniformLocation(program,'u_stopS');uStopV=gl.getUniformLocation(program,'u_stopV');uAlpha=gl.getUniformLocation(program,'u_alpha');uColorMask=gl.getUniformLocation(program,'u_colorMask');uRotation=gl.getUniformLocation(program,'u_rotation');uScale=gl.getUniformLocation(program,'u_scale');uOffset=gl.getUniformLocation(program,'u_offset');uPointScale=gl.getUniformLocation(program,'u_pointScale');uSphereMode=gl.getUniformLocation(program,'u_sphereMode');aQuadPos=gl.getAttribLocation(quadProgram,'a_pos');uDim=gl.getUniformLocation(quadProgram,'u_dim');quadBuf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);posBuffer=gl.createBuffer();hueBuffer=gl.createBuffer();if(hue){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}return true;}
-    if(gl){glCanvas.addEventListener('webglcontextlost',function(e){e.preventDefault();contextLost=true;cancelAnimationFrame(animFrame);useWebGL=false;glCanvas.classList.add('hidden');c2dCanvas.classList.remove('hidden');ctx2d=c2dCanvas.getContext('2d');c2dCanvas.width=W;c2dCanvas.height=H;contextLost=false;lastTime=performance.now();animFrame=requestAnimationFrame(loop);});glCanvas.addEventListener('webglcontextrestored',function(){if(initGPU()){useWebGL=true;c2dCanvas.classList.add('hidden');glCanvas.classList.remove('hidden');gl.viewport(0,0,W,H);if(hue){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}contextLost=false;}});}
-
-    // --- Частицы ---
-    function getGap(){return userGap;}
-    let GAP=getGap(),W,H,COLS,ROWS,TOTAL;
-    let homeX,homeY,posX,posY,velX,velY,hue,glPositions;
-    const ECHO_FRAMES=4;let echoHistory=[],echoFrame=0;
-    let colorCache=null;
-    function hsv2rgbCPU(h,s,v){h=((h%360)+360)%360;const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c;let r,g,b;if(h<60){r=c;g=x;b=0;}else if(h<120){r=x;g=c;b=0;}else if(h<180){r=0;g=c;b=x;}else if(h<240){r=0;g=x;b=c;}else if(h<300){r=x;g=0;b=c;}else{r=c;g=0;b=x;}return[(r+m)*255|0,(g+m)*255|0,(b+m)*255|0];}
-    function getPaletteColorCPU(t,ns){const idx=t*8;let lo=Math.floor(idx),hi=lo+1;if(hi>8)hi=8;if(lo<0)lo=0;const f=idx-lo,sl=ns[lo],sh2=ns[hi];let h1=sl.h,h2=sh2.h,d=h2-h1;if(d>180)h1+=360;else if(d<-180)h2+=360;return hsv2rgbCPU(h1+(h2-h1)*f,sl.s+(sh2.s-sl.s)*f,sl.v+(sh2.v-sl.v)*f);}
-    function init(){GAP=getGap();W=window.innerWidth;H=window.innerHeight;if(useWebGL){glCanvas.width=W;glCanvas.height=H;if(gl)gl.viewport(0,0,W,H);}else{c2dCanvas.width=W;c2dCanvas.height=H;}COLS=Math.ceil(W/GAP);ROWS=Math.ceil(H/GAP);TOTAL=COLS*ROWS;homeX=new Float32Array(TOTAL);homeY=new Float32Array(TOTAL);posX=new Float32Array(TOTAL);posY=new Float32Array(TOTAL);velX=new Float32Array(TOTAL);velY=new Float32Array(TOTAL);hue=new Float32Array(TOTAL);glPositions=new Float32Array(TOTAL*2);const cc=(COLS-1)/2,cr=(ROWS-1)/2,md=Math.sqrt(cc*cc+cr*cr);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;homeX[i]=c*GAP;homeY[i]=r*GAP;posX[i]=homeX[i];posY[i]=homeY[i];const dx=c-cc,dy=r-cr,dist=Math.sqrt(dx*dx+dy*dy),proj=md>0?(dx*.7071+dy*.7071)/md:0,dr=md>0?dist/md:0;hue[i]=1/(1+Math.exp(-(2+dr*4)*proj));}if(useWebGL&&gl){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}colorCache=new Uint8Array(TOTAL*3);echoHistory=[];for(let i=0;i<ECHO_FRAMES;i++)echoHistory.push(new Float32Array(TOTAL*2));}
-
-    // --- Ввод ---
-    let mouseDown=false,mousePos={x:0,y:0},touchPoints=[];
-    function isUI(e){return e.target.closest('.ui-toggle')||e.target.closest('.panel')||e.target.closest('.overlay')||e.target.closest('.mic-prompt');}
-    document.addEventListener('mousedown',e=>{if(isUI(e))return;if(e.button===0){mouseDown=true;mousePos={x:e.clientX,y:e.clientY};e.preventDefault();}});
-    window.addEventListener('mousemove',e=>{if(isUI(e))return;mousePos={x:e.clientX,y:e.clientY};});
-    window.addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;});
-    function updateTouchPoints(e){touchPoints=[];for(let i=0;i<e.touches.length;i++)touchPoints.push({x:e.touches[i].clientX,y:e.touches[i].clientY});}
-    document.addEventListener('touchstart',e=>{if(isUI(e))return;e.preventDefault();updateTouchPoints(e);},{passive:false});
-    document.addEventListener('touchmove',e=>{if(isUI(e))return;e.preventDefault();updateTouchPoints(e);},{passive:false});
-    document.addEventListener('touchend',e=>{e.preventDefault();updateTouchPoints(e);},{passive:false});
-    document.addEventListener('touchcancel',()=>{touchPoints=[];});
-    window.addEventListener('blur',()=>{mouseDown=false;touchPoints=[];});
-    document.addEventListener('contextmenu',e=>e.preventDefault());
-
-    // --- Физика ---
-    let time=0;
-    const shaderH=new Float32Array(9),shaderS=new Float32Array(9),shaderV=new Float32Array(9);
-    function getTotalForce(px,py,points,physMode){let totalFx=0,totalFy=0;const needAngle=physMode!=='vortex'&&physMode!=='blackhole'&&physMode!=='horizon'&&physMode!=='antigravity'&&physMode!=='breathing'&&physMode!=='melting'&&physMode!=='sound'&&!physMode.startsWith('music_');for(let p=0;p<points.length;p++){const pt=points[p],dx=pt.x-px,dy=pt.y-py,dist=Math.sqrt(dx*dx+dy*dy);if(dist<.2)continue;const nx=dx/dist,ny=dy/dist,strength=pt.strength||1;const angle=needAngle?Math.atan2(dy,dx):0;
-        if(physMode==='vortex'){if(dist<4){totalFx+=nx*25*strength;totalFy+=ny*25*strength;continue;}const a=180/(dist+2)*strength;totalFx+=nx*a+(-ny)*a*.6;totalFy+=ny*a+nx*a*.6;}
-        else if(physMode==='blackhole'){const f=200/(dist*dist+3)*strength;totalFx+=nx*f;totalFy+=ny*f;}
-        else if(physMode==='horizon'){if(dist<8)continue;if(dist<18){const f=2/(dist-7)*strength;totalFx+=nx*f;totalFy+=ny*f;}else{const f=40/dist*strength;totalFx+=nx*f;totalFy+=ny*f;}}
-        else if(physMode==='antigravity'){if(dist<.5)continue;const f=-300/(dist*dist+5)*strength;totalFx+=nx*f;totalFy+=ny*f;}
-        else if(physMode==='wave'){if(dist<.5)continue;const f=15*Math.sin(dist*.3)/(dist*.1+1)*strength;totalFx+=Math.cos(angle)*f;totalFy+=Math.sin(angle)*f;}
-        else if(physMode==='fibonacci'){if(dist<.5)continue;const sa=Math.log(dist+1)*1.618*2.4,f=8/(dist*.3+.5)*strength;totalFx+=Math.cos(angle+sa)*f;totalFy+=Math.sin(angle+sa)*f;totalFx+=Math.cos(angle+Math.PI/2)*f*.6;totalFy+=Math.sin(angle+Math.PI/2)*f*.6;}
-        else if(physMode==='moire'){if(dist<.5)continue;const f1=Math.sin(dist*.15)*.5,f2=Math.cos(dist*.13+angle*3)*.5,f=(f1+f2)*12/(dist*.08+.5)*strength;totalFx+=Math.cos(angle)*f;totalFy+=Math.sin(angle)*f;const pf=Math.sin(dist*.1+angle*5)*6/(dist*.05+.5)*strength;totalFx+=Math.cos(angle+Math.PI/2)*pf;totalFy+=Math.sin(angle+Math.PI/2)*pf;}
-        else if(physMode==='mycelium'){if(dist<.5)continue;const pulse=Math.sin(time*.002+dist*.1)*.5+.5,f=6/(dist*.15+.5)*(.6+pulse*.4)*strength;totalFx+=Math.cos(angle)*f;totalFy+=Math.sin(angle)*f;const bf=Math.sin(angle*3+time*.001)*3/(dist*.1+.5)*strength;totalFx+=Math.cos(angle+Math.PI/2)*bf;totalFy+=Math.sin(angle+Math.PI/2)*bf;}
-        else if(physMode==='plankton'){if(dist<.5)continue;const drift=Math.sin(time*.003+px*.05)*Math.cos(time*.002+py*.05),f=(4/(dist*.2+.5)+drift*2)*strength;totalFx+=Math.cos(angle)*f;totalFy+=Math.sin(angle)*f;}
-        else if(physMode==='swarm'){if(dist<.5)continue;const coh=5/(dist*.2+.5),sep=dist<20?-15/(dist*dist*.05+.5):0,ali=Math.sin(time*.001+angle*2)*3,f=(coh+sep+ali)*strength;totalFx+=Math.cos(angle)*f;totalFy+=Math.sin(angle)*f;}
-        else if(physMode==='gravlens'){if(dist<2)continue;const te=25-dist,f=te*.3/(Math.abs(te)*.02+.3)*strength;totalFx+=nx*f;totalFy+=ny*f;totalFx+=-ny*2/(dist*.05+.3)*strength;totalFy+=nx*2/(dist*.05+.3)*strength;}
-        else if(physMode==='magnetic'){if(dist<.5)continue;const fa=angle+Math.PI/2,f=10/(dist*.1+.5)*strength;totalFx+=Math.cos(fa)*f;totalFy+=Math.sin(fa)*f;const af=Math.sin(angle*2)*4/(dist*.08+.4)*strength;totalFx+=Math.cos(angle)*af;totalFy+=Math.sin(angle)*af;}
-        else if(physMode==='turbulence'){if(dist<.5)continue;const n=Math.sin(px*.1+time*.01)*Math.cos(py*.13+time*.008),f=(8+n*6)/(dist*.1+.5)*strength;totalFx+=nx*f;totalFy+=ny*f;totalFx+=-ny*n*3*strength;totalFy+=nx*n*3*strength;}
-        else if(physMode==='lorenz'){if(dist<.5)continue;const lx=px*.02-10,ly=py*.02-10,dxl=10*(ly-lx),dyl=lx*(28-(time*.001%60+20))-ly,len=Math.sqrt(dxl*dxl+dyl*dyl)+.01,f=4/(dist*.1+.5)*strength;totalFx+=dxl/len*f;totalFy+=dyl/len*f;}
-        else if(physMode==='automaton'){if(dist<.5)continue;const st=(Math.floor(px/10)+Math.floor(py/10)+Math.floor(time*.01))%3,f=(st===0?5:st===1?-3:Math.sin(dist*.2)*4)/(dist*.1+.5)*strength;totalFx+=nx*f;totalFy+=ny*f;}
-        else if(physMode==='kaleidoscope'){if(dist<.5)continue;const sec=6,sa=((angle+Math.PI)%(2*Math.PI/sec))-Math.PI/sec,ma=angle-sa*2,f=8/(dist*.1+.5)*strength;totalFx+=Math.cos(ma)*f;totalFy+=Math.sin(ma)*f;}
-        else if(physMode==='breathing'){if(dist<.5)continue;const br=Math.sin(time*.002)*.5+.5,f=br*10/(dist*.1+.5)*strength;totalFx+=nx*f;totalFy+=ny*f;}
-        else if(physMode==='melting'){if(dist<.5)continue;totalFy+=3/(dist*.1+.5)*strength;totalFx+=Math.sin(px*.05+time*.003)*2*strength;totalFy+=Math.cos(py*.05+time*.002)*2*strength;}
-        else if(physMode==='sound'){if(dist<.5)continue;const f=15/(dist*.08+.4)*strength;totalFx+=nx*f;totalFy+=ny*f;totalFx+=-ny*f*.5;totalFy+=nx*f*.5;}
-        else if(physMode==='electrostatic'){if(dist<1)continue;const ch=(p%2===0)?1:-1,f=ch*80/(dist*dist+4)*strength;totalFx+=nx*f;totalFy+=ny*f;const cr2=Math.sin(angle*4+dist*.1)*3/(dist*.1+.5)*strength;totalFx+=-ny*cr2;totalFy+=nx*cr2;}
-        else if(physMode==='pendulum'){if(dist<.5)continue;const t1=time*.003,t2=time*.0047,a1=Math.sin(t1)*Math.PI,a2=Math.sin(t2)*Math.PI*1.3,cx=Math.sin(a1)+Math.sin(a1+a2),cy=-Math.cos(a1)-Math.cos(a1+a2),cf=6/(dist*.1+.5)*strength;totalFx+=nx*cf+cx*cf*.4;totalFy+=ny*cf+cy*cf*.4;}
-        else if(physMode==='flock'){if(dist<.5)continue;const tangent=25/(dist*.03+.2)*strength;totalFx+=(-ny)*tangent;totalFy+=nx*tangent;const orbitDist=80,orbitForce=(orbitDist-dist)*.2*strength/(Math.abs(orbitDist-dist)*.01+.3);totalFx+=nx*orbitForce;totalFy+=ny*orbitForce;if(dist<25){const sep=-30/(dist*dist*.03+.2)*strength;totalFx+=nx*sep;totalFy+=ny*sep;}const jitter=Math.sin(time*.005+dist*.3+angle*7)*4*strength;totalFx+=Math.cos(angle+1.2)*jitter;totalFy+=Math.sin(angle+1.2)*jitter;}
-        else if(physMode==='pulsar'){if(dist<.5)continue;const w=Math.sin(dist*.15-time*.008)*strength,f=w*10/(dist*.08+.4);totalFx+=nx*f;totalFy+=ny*f;totalFx+=-ny*2/(dist*.1+.5)*strength;totalFy+=nx*2/(dist*.1+.5)*strength;}
-        else if(physMode==='fabric'){if(dist<.5)continue;const rd=40,sp=(rd-dist)*.15/(Math.abs(rd-dist)*.02+.3)*strength;totalFx+=nx*sp;totalFy+=ny*sp;const rp=Math.sin(dist*.2-time*.005)*3/(dist*.05+.5)*strength;totalFx+=nx*rp;totalFy+=ny*rp;}
-        else if(physMode==='reaction'){if(dist<.5)continue;const pat=Math.sin(px*.06)*Math.cos(py*.06)+Math.sin((px+py)*.04+time*.002),f=pat*6/(dist*.1+.5)*strength;totalFx+=nx*f;totalFy+=ny*f;const df=Math.cos(px*.08-py*.05+time*.003)*4/(dist*.08+.4)*strength;totalFx+=-ny*df;totalFy+=nx*df;}
-        else if(physMode==='fractal'){if(dist<.5)continue;const zx=(px-pt.x)*.01,zy=(py-pt.y)*.01,cx2=-.7+Math.sin(time*.001)*.1,cy2=.27+Math.cos(time*.0013)*.08,nzx=zx*zx-zy*zy+cx2,nzy=2*zx*zy+cy2,fL=Math.sqrt(nzx*nzx+nzy*nzy)+.01,f=6/(dist*.1+.5)*strength;totalFx+=nzx/fL*f;totalFy+=nzy/fL*f;}
-        // Мандала Пульс — волны вдох-выдох + лёгкое вращение
-        else if(physMode==='mandala_pulse'){if(dist<.5)continue;const pulse=Math.sin(dist*.06-time*.004)*strength;const radial=pulse*15/(dist*.05+.3);totalFx+=nx*radial;totalFy+=ny*radial;const spin=5/(dist*.08+.4)*strength*spinDirection;totalFx+=(-ny)*spin;totalFy+=nx*spin;}
-        // Музыкальные режимы — общая физика
-        else if(physMode.startsWith('music_')){if(dist<.5)continue;const b=musicBands,sd=spinDirection;const bassF=b.bass*30/(dist*.05+.3)*strength;totalFx+=nx*bassF;totalFy+=ny*bassF;const midS=b.mid*20/(dist*.06+.4)*strength*sd;totalFx+=(-ny)*midS;totalFy+=nx*midS;const hiJit=b.high*Math.sin(time*.01+dist*.5)*8*strength/(dist*.08+.3);totalFx+=nx*hiJit;totalFy+=(-ny)*hiJit;if(b.flux>.15){const burst=b.flux*-40/(dist*.03+.2)*strength;totalFx+=nx*burst;totalFy+=ny*burst;}const wv=b.lowMid*Math.sin(dist*.08-time*.004)*6/(dist*.06+.4)*strength;totalFx+=nx*wv;totalFy+=ny*wv;
-            // Волновой — добавляем горизонтальные полосы
-            if(physMode==='music_wave'){const band=py/H;let bandEnergy=b.bass;if(band>.2)bandEnergy=b.lowMid;if(band>.4)bandEnergy=b.mid;if(band>.6)bandEnergy=b.highMid;if(band>.8)bandEnergy=b.high;const waveF=bandEnergy*Math.sin(px*.02-time*.005)*15*strength;totalFy+=waveF;}
-        }
-    }return{fx:totalFx,fy:totalFy};}
-
-    function update(dt){const dt60=Math.min(3,dt*60),physMode=getPhysicsMode();const isMusicMode=physMode.startsWith('music_');const isActive=touchPoints.length>0||mouseDown||(physMode==='sound'&&micActive&&getMicForce()>.02)||(isMusicMode&&musicPlaying);time+=dt*1000;if(isMusicMode&&musicPlaying)analyzeMusic();if(transitionProgress<1){transitionProgress=Math.min(1,transitionProgress+dt*3);if(transitionProgress>=1)currentStops=JSON.parse(JSON.stringify(targetStops));}let as;if(transitionProgress>=1)as=currentStops;else as=lerpStops(currentStops,targetStops,transitionProgress);const norm=normalizeStops(as);for(let i=0;i<9;i++){shaderH[i]=norm[i].h;shaderS[i]=norm[i].s;shaderV[i]=norm[i].v;}if(!useWebGL&&colorCache){for(let i=0;i<TOTAL;i++){const c=getPaletteColorCPU(hue[i],norm);colorCache[i*3]=c[0];colorCache[i*3+1]=c[1];colorCache[i*3+2]=c[2];}}
-    const points=[];if(mouseDown)points.push(mousePos);for(let t=0;t<touchPoints.length;t++)points.push(touchPoints[t]);
-    // Мандала Тест — при касании добавляем центр как главный аттрактор
-    if(currentMode==='mandala_test'&&(mouseDown||touchPoints.length>0)){points.push({x:W/2,y:H/2,strength:1.2});}
-    if(physMode==='sound'&&micActive){const mf=getMicForce();if(mf>.02){const cx=W/2,cy=H/2;points.push({x:cx,y:cy,strength:mf});points.push({x:cx*.5,y:cy*.5,strength:mf*.6});points.push({x:cx*1.5,y:cy*.5,strength:mf*.6});points.push({x:cx*.5,y:cy*1.5,strength:mf*.6});points.push({x:cx*1.5,y:cy*1.5,strength:mf*.6});}}
-    if(isMusicMode&&musicPlaying&&musicBands.energy>.01){const cx=W/2,cy=H/2,e=musicBands.energy;points.push({x:cx,y:cy,strength:e*1.5});const orbitSpeed=time*.001*(1+musicBands.mid*3)*spinDirection;const orbitR=Math.min(W,H)*.25*(1+musicBands.bass*.5);for(let k=0;k<4;k++){const a=orbitSpeed+k*Math.PI/2;points.push({x:cx+Math.cos(a)*orbitR,y:cy+Math.sin(a)*orbitR,strength:e*.7});}}
-    for(let i=0;i<TOTAL;i++){const px=posX[i],py=posY[i];if(isActive){const force=getTotalForce(px,py,points,physMode);velX[i]=(velX[i]+force.fx*dt60)*.92;velY[i]=(velY[i]+force.fy*dt60)*.92;const sp=Math.sqrt(velX[i]*velX[i]+velY[i]*velY[i]);if(sp>25){velX[i]=velX[i]/sp*25;velY[i]=velY[i]/sp*25;}posX[i]+=velX[i]*dt60;posY[i]+=velY[i]*dt60;}else{const dxH=homeX[i]-px,dyH=homeY[i]-py,distH=Math.sqrt(dxH*dxH+dyH*dyH);if(distH<.15){posX[i]=homeX[i];posY[i]=homeY[i];velX[i]=0;velY[i]=0;}else{const lf=.04*dt60;posX[i]+=dxH*lf;posY[i]+=dyH*lf;velX[i]=dxH*lf;velY[i]=dyH*lf;}}}
-    if(currentMode==='echo'||currentMode==='double_exp'){const buf=echoHistory[echoFrame%ECHO_FRAMES];for(let i=0;i<TOTAL;i++){buf[i*2]=posX[i];buf[i*2+1]=posY[i];}echoFrame++;}}
-
-    // --- Рендер ---
-    function drawDimQuad(d){gl.useProgram(quadProgram);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);gl.enableVertexAttribArray(aQuadPos);gl.vertexAttribPointer(aQuadPos,2,gl.FLOAT,false,0,0);gl.uniform1f(uDim,d);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);gl.disableVertexAttribArray(aQuadPos);}
-    function drawParticles(positions,o){gl.useProgram(program);gl.uniform2f(uResolution,W,H);gl.uniform1fv(uStopH,shaderH);gl.uniform1fv(uStopS,shaderS);gl.uniform1fv(uStopV,shaderV);gl.uniform1f(uAlpha,(o.alpha||1)*brightnessLevel);gl.uniform3f(uColorMask,o.r!==undefined?o.r:1,o.g!==undefined?o.g:1,o.b!==undefined?o.b:1);gl.uniform1f(uRotation,o.rotation||0);gl.uniform1f(uScale,(o.scale||1)*zoomLevel);gl.uniform2f(uOffset,o.ox||0,o.oy||0);gl.uniform1f(uPointScale,(o.pointScale||1)*zoomLevel);gl.uniform1f(uSphereMode,o.sphereMode||0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,positions,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.enableVertexAttribArray(aHue);gl.vertexAttribPointer(aHue,1,gl.FLOAT,false,0,0);gl.drawArrays(gl.POINTS,0,TOTAL);}
-
-    function renderGL(){for(let i=0;i<TOTAL;i++){glPositions[i*2]=posX[i];glPositions[i*2+1]=posY[i];}const mode=currentMode;
-        if(mode==='trails'){if(hasPreserve)drawDimQuad(.08);else{gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);}drawParticles(glPositions,{});}
-        else if(mode==='fractal_mirror'||mode==='music_mandala'||mode==='mandala_6'||mode==='mandala_8'||mode==='mandala_12'||mode==='mandala_test'||mode==='mandala_pulse'){gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);const sectors=mode==='music_mandala'?6:mode==='mandala_6'?6:mode==='mandala_8'?8:mode==='mandala_12'?12:mode==='mandala_test'?6:mode==='mandala_pulse'?6:5;const baseRot=(mode==='music_mandala'||mode.startsWith('mandala_'))?time*.0003*spinDirection*spinSpeed:0;for(let k=0;k<sectors;k++){const r=baseRot+k*Math.PI*2/sectors;const a=1-k*(1/(sectors+2));drawParticles(glPositions,{rotation:r,alpha:Math.max(.15,a),scale:mode==='fractal_mirror'?1-k*.15:1});}}
-        else if(mode==='parallax'){gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);drawParticles(glPositions,{scale:.7,alpha:.25,pointScale:.7});drawParticles(glPositions,{scale:.85,alpha:.5,pointScale:.85});drawParticles(glPositions,{});}
-        else if(mode==='sphere_depth'){gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);drawParticles(glPositions,{sphereMode:1});}
-        else if(mode==='echo'){gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);for(let e=0;e<ECHO_FRAMES;e++){const idx=((echoFrame-ECHO_FRAMES+e)%ECHO_FRAMES+ECHO_FRAMES)%ECHO_FRAMES;drawParticles(echoHistory[idx],{alpha:(e+1)/(ECHO_FRAMES+1)*.5,pointScale:.6+e*.1});}drawParticles(glPositions,{});}
-        else if(mode==='chromatic'){gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);drawParticles(glPositions,{r:1,g:0,b:0,ox:-3,oy:-1.5,alpha:.9});drawParticles(glPositions,{r:0,g:1,b:0,ox:0,oy:1.5,alpha:.9});drawParticles(glPositions,{r:0,g:0,b:1,ox:3,oy:0,alpha:.9});}
-        else if(mode==='glitch'){gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);drawParticles(glPositions,{});if(Math.random()<.15)drawParticles(glPositions,{ox:(Math.random()-.5)*30,r:1,g:0,b:.5,alpha:.4});if(Math.random()<.08)drawParticles(glPositions,{ox:(Math.random()-.5)*50,r:0,g:1,b:.5,alpha:.3});}
-        else if(mode==='double_exp'){gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);const di=((echoFrame-ECHO_FRAMES)%ECHO_FRAMES+ECHO_FRAMES)%ECHO_FRAMES;drawParticles(echoHistory[di],{alpha:.5,scale:1.05,rotation:.02});drawParticles(glPositions,{});}
-        else{gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);drawParticles(glPositions,{});}}
-    function render2D(){if(!ctx2d)return;const imgData=ctx2d.createImageData(W,H),data=imgData.data;for(let i=0;i<TOTAL;i++){const px=posX[i]|0,py=posY[i]|0;if(px<0||px>=W||py<0||py>=H)continue;const r=colorCache[i*3],g=colorCache[i*3+1],b=colorCache[i*3+2];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const sx=px+dx,sy=py+dy;if(sx<0||sx>=W||sy<0||sy>=H)continue;const w=Math.exp(-(dx*dx+dy*dy)*.8)*1.2,off=(sy*W+sx)*4;data[off]=Math.min(255,data[off]+r*w);data[off+1]=Math.min(255,data[off+1]+g*w);data[off+2]=Math.min(255,data[off+2]+b*w);data[off+3]=255;}}ctx2d.putImageData(imgData,0,0);}
-    function render(){if(useWebGL&&gl&&!contextLost)renderGL();else render2D();}
-
-    let lastTime=performance.now(),animFrame;
-    function loop(ts){const dt=Math.min(.1,(ts-lastTime)/1000);lastTime=ts;update(dt);render();animFrame=requestAnimationFrame(loop);}
-    window.addEventListener('resize',()=>{cancelAnimationFrame(animFrame);init();lastTime=performance.now();animFrame=requestAnimationFrame(loop);});
-    const initNorm=normalizeStops(currentStops);for(let i=0;i<9;i++){shaderH[i]=initNorm[i].h;shaderS[i]=initNorm[i].s;shaderV[i]=initNorm[i].v;}
-    if(useWebGL)initGPU();init();render();animFrame=requestAnimationFrame(loop);
-    </script>
+    <script src="scripts.js"></script>
 </body>
 </html>
