@@ -3,7 +3,10 @@ const ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
-  '/scripts.js'
+  '/scripts.js',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', e => {
