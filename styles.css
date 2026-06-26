@@ -1,6 +1,7 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 html, body { width:100%; height:100%; overflow:hidden; background:#000; touch-action:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; position:fixed; top:0; left:0; font-family:'Segoe UI',system-ui,sans-serif; cursor:none; }
 canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; touch-action:none; z-index:1; cursor:none; }
+#wireCanvas { z-index:2; pointer-events:none; display:none; }
 .hidden { display:none !important; }
 
 /* --- Курсор --- */
@@ -21,11 +22,11 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 }
 .anchor:hover { color:rgba(255,255,255,0.5); }
 .anchor.active { color:rgba(255,255,255,0.85); }
-.anchor-profile { top:14px; left:14px; }
-.anchor-eye { top:14px; right:14px; }
+.anchor-profile { top:14px; right:14px; }
+.anchor-eye { top:14px; left:14px; }
 
 /* --- Профиль --- */
-.profile-panel { position:fixed; top:62px; left:16px; z-index:15; width:230px; background:rgba(8,8,16,0.92); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:18px; opacity:0; transform:translateY(-8px); transition:opacity .25s,transform .25s; pointer-events:none; }
+.profile-panel { position:fixed; top:62px; right:16px; z-index:15; width:230px; background:rgba(8,8,16,0.92); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:18px; opacity:0; transform:translateY(-8px); transition:opacity .25s,transform .25s; pointer-events:none; }
 .profile-panel.open { opacity:1; transform:translateY(0); pointer-events:auto; }
 .panel-title { color:rgba(255,255,255,0.25); font-size:9px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; padding-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:14px; }
 .profile-section { display:flex; align-items:center; gap:12px; margin-bottom:14px; }

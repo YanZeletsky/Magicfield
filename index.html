@@ -4,11 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Soundfield</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Soundfield">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="cursor" id="cursor"></div>
     <canvas id="glCanvas"></canvas>
+    <canvas id="wireCanvas"></canvas>
     <canvas id="c2dCanvas" class="hidden"></canvas>
 
     <!-- 👤 Профиль -->
@@ -62,8 +68,20 @@
         <div class="sp-page" id="spSettings">
             <div class="sp-section-label">Полотно</div>
             <div class="sub-modes" id="dimensionBtns">
-                <div class="sub-btn active" data-dim="0">2D</div>
-                <div class="sub-btn" data-dim="1">3D</div>
+                <div class="sub-btn" data-dim="1d">1D</div>
+                <div class="sub-btn active" data-dim="2d">2D</div>
+                <div class="sub-btn" data-dim="3d">3D</div>
+                <div class="sub-btn" data-dim="4d">4D</div>
+            </div>
+            <div id="shapeSection1D" style="display:none">
+                <div class="sp-section-label">Захват</div>
+                <div class="sub-modes" id="capture1DBtns">
+                    <div class="sub-btn active" data-bar="0">Нет</div>
+                    <div class="sub-btn" data-bar="1">Круг</div>
+                    <div class="sub-btn" data-bar="2">Квадрат</div>
+                    <div class="sub-btn" data-bar="3">Треугольник</div>
+                </div>
+                <div class="ctrl-row"><span class="ctrl-label">Слои</span><input type="range" class="ctrl-slider" id="capture1DSlider" min="0" max="16" value="0" step="1"><span class="ctrl-value" id="capture1DVal">0</span></div>
             </div>
             <div id="shapeSection2D">
                 <div class="sub-modes" id="shapeBtns">
@@ -92,7 +110,22 @@
                 <div class="ctrl-row"><span class="ctrl-label">Вращение</span><input type="range" class="ctrl-slider" id="deformRotSlider" min="0" max="200" value="50" step="1"></div>
                 <div class="ctrl-row"><span class="ctrl-label">Наклон</span><input type="range" class="ctrl-slider" id="deformTiltSlider" min="0" max="150" value="35" step="1"></div>
             </div>
+            <div id="shapeSection4D" style="display:none">
+                <div class="sub-modes" id="shape4DBtns">
+                    <div class="sub-btn active" data-shape="0">Куб</div>
+                </div>
+                <div class="ctrl-row"><span class="ctrl-label">Размер</span><input type="range" class="ctrl-slider" id="vol4dSizeSlider" min="20" max="80" value="35" step="1"></div>
+                <div class="ctrl-row"><span class="ctrl-label">Хаос</span><input type="range" class="ctrl-slider" id="vol4dChaosSlider" min="5" max="100" value="30" step="1"></div>
+            </div>
             <div id="settingsCommon">
+            <div class="sp-section-label">Барьеры</div>
+            <div class="sub-modes" id="barrierBtns">
+                <div class="sub-btn active" data-bar="0">Нет</div>
+                <div class="sub-btn" data-bar="1">Круг</div>
+                <div class="sub-btn" data-bar="2">Квадрат</div>
+                <div class="sub-btn" data-bar="3">Треугольник</div>
+            </div>
+            <div class="ctrl-row" id="barrierLayersRow" style="display:none"><span class="ctrl-label">Слои</span><input type="range" class="ctrl-slider" id="barrierLayersSlider" min="1" max="16" value="1" step="1"><span class="ctrl-value" id="barrierLayersVal">1</span></div>
             <div class="sp-section-label">Общие</div>
             <div class="ctrl-row"><span class="ctrl-label">Вращение</span><div class="ctrl-btns"><button class="ctrl-btn active" id="dirCW"><svg viewBox="0 0 16 16" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M11 3l2 2-2 2"/><path d="M13 5H7a4 4 0 100 8h1"/></svg></button><button class="ctrl-btn" id="dirCCW"><svg viewBox="0 0 16 16" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M5 3L3 5l2 2"/><path d="M3 5h6a4 4 0 110 8H8"/></svg></button></div></div>
             <div class="ctrl-row"><span class="ctrl-label">Скорость</span><input type="range" class="ctrl-slider" id="speedSlider" min="0" max="200" value="100" step="1"></div>
@@ -147,6 +180,7 @@
         <div class="custom-actions"><button class="custom-add-btn" id="customAddStop">＋ Цвет</button></div>
     </aside>
 
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
     <script src="scripts.js"></script>
 </body>
 </html>
