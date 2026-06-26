@@ -1,12 +1,12 @@
-const CACHE_NAME = 'soundfield-v1';
+const CACHE_NAME = 'soundfield-v2';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/scripts.js',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/apple-touch-icon.png'
+  './',
+  './index.html',
+  './styles.css',
+  './scripts.js',
+  './icon-192.png',
+  './icon-512.png',
+  './apple-touch-icon.png'
 ];
 
 self.addEventListener('install', e => {
@@ -25,6 +25,6 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });
