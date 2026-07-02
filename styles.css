@@ -2,12 +2,29 @@
 html, body { width:100%; height:100%; overflow:hidden; background:#000; touch-action:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; position:fixed; top:0; left:0; font-family:'Segoe UI',system-ui,sans-serif; cursor:none; }
 canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; touch-action:none; z-index:1; cursor:none; }
 #wireCanvas { z-index:2; pointer-events:none; display:none; }
+#threeCanvas { z-index:1; cursor:none; }
 .hidden { display:none !important; }
 
 /* --- Курсор --- */
 .cursor { position:fixed; pointer-events:none; z-index:100; width:12px; height:12px; border-radius:50%; background:rgba(0,0,0,0.9); border:2px solid rgba(255,255,255,0.5); box-shadow:0 0 8px rgba(0,0,0,0.8),0 0 4px rgba(255,255,255,0.3),inset 0 0 4px rgba(255,255,255,0.2); transform:translate(-50%,-50%); transition:width .15s,height .15s; display:none; }
 .cursor.active { width:18px; height:18px; border-color:rgba(255,255,255,0.8); }
 @media (hover:hover) and (pointer:fine) { .cursor { display:block; } }
+
+/* --- Сцены (верхняя панель) --- */
+.scene-bar {
+    position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:15;
+    display:flex; gap:4px; padding:4px;
+    background:rgba(8,8,16,0.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,0.06); border-radius:14px;
+    pointer-events:auto;
+}
+.scene-btn {
+    width:48px; height:48px; border-radius:12px; border:none; background:transparent;
+    color:rgba(255,255,255,0.3); cursor:pointer; transition:all .25s;
+    display:flex; align-items:center; justify-content:center; padding:0;
+}
+.scene-btn:hover { color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.04); }
+.scene-btn.active { color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.1); }
 
 /* --- Якоря --- */
 .anchor {
@@ -239,4 +256,60 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .ui-hidden .beat-panel,
 .ui-hidden .custom-palette-panel,
 .ui-hidden .anchor-profile,
-.ui-hidden .profile-panel { opacity:0 !important; pointer-events:none !important; }
+.ui-hidden .profile-panel,
+.ui-hidden .scene-bar { opacity:0 !important; pointer-events:none !important; }
+
+
+/* --- Сетка иконок режимов --- */
+.modes-icon-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:4px; }
+.mode-icon-item {
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    padding:8px 4px; border-radius:10px; cursor:pointer;
+    transition:all .2s; border:1px solid transparent;
+}
+.mode-icon-item:hover { background:rgba(255,255,255,0.04); }
+.mode-icon-item.active { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.15); }
+.mode-icon-item svg { color:rgba(255,255,255,0.4); transition:color .2s; }
+.mode-icon-item.active svg { color:rgba(255,255,255,0.85); }
+.mode-icon-label { color:rgba(255,255,255,0.3); font-size:8px; text-align:center; line-height:1.2; }
+.mode-icon-item.active .mode-icon-label { color:rgba(255,255,255,0.7); }
+.mode-icon-item:hover .mode-icon-label { color:rgba(255,255,255,0.5); }
+
+/* --- Мобильная адаптация --- */
+@media (max-width:768px) {
+    .scene-bar { top:8px; padding:3px; gap:3px; border-radius:12px; }
+    .scene-btn { width:44px; height:44px; border-radius:10px; }
+    .anchor-eye { top:8px; left:8px; width:52px; height:52px; border-radius:12px; }
+    .anchor-profile { top:8px; right:8px; width:52px; height:52px; border-radius:12px; }
+    /* тулбар внизу */
+    .toolbar {
+        left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;
+        transform:none !important;
+        flex-direction:row !important; justify-content:center;
+        border-radius:0 !important; border-top:1px solid rgba(255,255,255,0.08);
+        border-left:none !important; border-right:none !important; border-bottom:none !important;
+        padding:6px 12px !important; gap:2px !important;
+        width:100% !important;
+        padding-bottom:env(safe-area-inset-bottom,6px) !important;
+    }
+    .tool-divider { width:1px !important; height:24px !important; margin:0 4px !important; }
+    .tool-icon { width:44px; height:44px; }
+    /* панель — bottom sheet */
+    .side-panel {
+        left:0 !important; right:0 !important; bottom:56px !important; top:auto !important;
+        transform:translateY(100%) !important; width:100% !important; max-height:55vh !important;
+        border-radius:16px 16px 0 0 !important;
+        padding-bottom:env(safe-area-inset-bottom,8px) !important;
+    }
+    .side-panel.open { transform:translateY(0) !important; }
+    /* профиль */
+    .profile-panel { top:auto; bottom:56px; right:8px; }
+    /* бит-панель */
+    .beat-panel { bottom:56px; padding-bottom:8px; }
+    /* кастом палитра */
+    .custom-palette-panel { left:8px; bottom:56px; top:auto; transform:none; }
+}
+@media (max-width:380px) {
+    .scene-btn { padding:5px 8px; font-size:10px; }
+    .modes-icon-grid { grid-template-columns:repeat(3,1fr); }
+}
