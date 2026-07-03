@@ -18,7 +18,7 @@ const musicParams={reactivity:1,bassStyle:0,dynamics:1,vortex:1};
 
 
 const modeIcons={
-vortex:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 12c-2-3-1-6 2-7s6 1 5 4-4 3-7 3-5 2-4 5 3 4 6 3"/></svg>',
+vortex: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 C14 12 16 9 14 6 C12 3 8 3 6 6 C4 9 5 14 9 17 C13 20 18 19 20 14 C22 9 19 3 13 1 C7 -1 2 4 1 11 C0 18 6 23 13 23 C20 23 23 16 21 9"/></svg>',
 turbulence:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8c3-2 5 2 8 0s5-2 8 0M3 12c3-2 5 2 8 0s5-2 8 0M3 16c3-2 5 2 8 0s5-2 8 0"/></svg>',
 electrostatic:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
 wave:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/></svg>',

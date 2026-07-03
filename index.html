@@ -22,8 +22,8 @@
         <button class="scene-btn" data-scene="3d" title="3D">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12"/><path d="M21 7l-9 5-9-5" opacity=".4"/></svg>
         </button>
-        <button class="scene-btn" data-scene="visual" title="betaВизуал">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l2.5 7.5H22l-6 4.5 2.5 7.5L12 17l-6.5 4.5L8 14 2 9.5h7.5z"/></svg>
+        <button class="scene-btn" data-scene="4d" title="4D" style="display:none">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="11" height="11" rx="1"/><rect x="10" y="10" width="11" height="11" rx="1"/><line x1="3" y1="3" x2="10" y2="10" opacity=".4"/><line x1="14" y1="3" x2="21" y2="10" opacity=".4"/><line x1="3" y1="14" x2="10" y2="21" opacity=".4"/><line x1="14" y1="14" x2="21" y2="21" opacity=".4"/></svg>
         </button>
     </div>
     <canvas id="glCanvas"></canvas>
@@ -80,11 +80,11 @@
                 <div class="modes-grid" id="modesList"></div>
             </div>
             <div id="modes3D" style="display:none">
-                <div class="sp-section-label">Режим</div>
-                <div class="sub-modes" id="testModeBtns3D">
-                    <div class="sub-btn active" data-tmode="vortex">Вихрь</div>
-                    <div class="sub-btn" data-tmode="mandala">Мандала</div>
+                <div class="sub-modes" id="modeTabs3D">
+                    <div class="sub-btn active" data-mtab3d="manual">Ручник</div>
+                    <div class="sub-btn" data-mtab3d="auto">Автомат</div>
                 </div>
+                <div class="modes-icon-grid" id="modesList3D"></div>
                 <div id="mandalaSubSection3D" style="display:none">
                     <div class="sp-section-label">Вариант</div>
                     <div class="sub-modes" id="mandalaSubBtns3D">
@@ -166,12 +166,19 @@
                 <div class="ctrl-row"><span class="ctrl-label">Хаос</span><input type="range" class="ctrl-slider" id="vol4dChaosSlider" min="5" max="100" value="30" step="1"></div>
             </div>
             <div id="shapeSectionTest" style="display:none">
+                <div class="sp-section-label" id="modeSettingsLabel3D" style="display:none"></div>
+                <div id="modeSettings3D"></div>
+                <div id="oldTestModeBtns" style="display:none">
                 <div class="sp-section-label">Режим</div>
                 <div class="sub-modes" id="testModeBtns">
                     <div class="sub-btn active" data-tmode="vortex">Вихрь</div>
                     <div class="sub-btn" data-tmode="mandala">Мандала</div>
                 </div>
                 <div id="testVortexSettings">
+                </div>
+                </div><!-- /oldTestModeBtns -->
+                <div class="sp-section-label">Физика</div>
+                <div id="testPhysicsSettings">
                 <div class="ctrl-row"><span class="ctrl-label">Сила</span><input type="range" class="ctrl-slider" id="t3dForce" min="1" max="60" value="15" step="1"><span class="ctrl-value" id="t3dForceV">0.15</span></div>
                 <div class="ctrl-row"><span class="ctrl-label">Вращение</span><input type="range" class="ctrl-slider" id="t3dSpin" min="1" max="80" value="30" step="1"><span class="ctrl-value" id="t3dSpinV">0.30</span></div>
                 <div class="ctrl-row"><span class="ctrl-label">Возврат</span><input type="range" class="ctrl-slider" id="t3dHome" min="5" max="150" value="40" step="5"><span class="ctrl-value" id="t3dHomeV">0.040</span></div>
@@ -212,7 +219,14 @@
                 <div class="ctrl-row"><span class="ctrl-label">Плотность</span><input type="range" class="ctrl-slider" id="betaDensity" min="5" max="80" value="30" step="1"><span class="ctrl-value" id="betaDensityV">0.30</span></div>
                 <div class="ctrl-row"><span class="ctrl-label">Пульс</span><input type="range" class="ctrl-slider" id="betaPulse" min="0" max="80" value="20" step="1"><span class="ctrl-value" id="betaPulseV">0.20</span></div>
             </div>
+            <div id="shapeSection4DTime" style="display:none">
+                <div class="sp-section-label">Время</div>
+                <div class="ctrl-row"><span class="ctrl-label">След</span><input type="range" class="ctrl-slider" id="trailFadeSlider" min="1" max="100" value="70" step="1"><span class="ctrl-value" id="trailFadeVal">0.70</span></div>
+                <div class="ctrl-row"><span class="ctrl-label">Слои</span><input type="range" class="ctrl-slider" id="trailLayersSlider" min="0" max="5" value="3" step="1"><span class="ctrl-value" id="trailLayersVal">3</span></div>
+                <div class="ctrl-row"><span class="ctrl-label">Разброс</span><input type="range" class="ctrl-slider" id="trailSpreadSlider" min="1" max="50" value="15" step="1"><span class="ctrl-value" id="trailSpreadVal">15</span></div>
+            </div>
             <div id="settingsCommon">
+            <div id="barrierSection" style="display:none">
             <div class="sp-section-label">Барьеры</div>
             <div class="sub-modes" id="barrierBtns">
                 <div class="sub-btn active" data-bar="0">Нет</div>
@@ -221,6 +235,7 @@
                 <div class="sub-btn" data-bar="3">Треугольник</div>
             </div>
             <div class="ctrl-row" id="barrierLayersRow" style="display:none"><span class="ctrl-label">Слои</span><input type="range" class="ctrl-slider" id="barrierLayersSlider" min="1" max="16" value="1" step="1"><span class="ctrl-value" id="barrierLayersVal">1</span></div>
+            </div><!-- /barrierSection -->
             <div class="sp-section-label">Общие</div>
             <div class="ctrl-row"><span class="ctrl-label">Вращение</span><div class="ctrl-btns"><button class="ctrl-btn active" id="dirCW"><svg viewBox="0 0 16 16" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M11 3l2 2-2 2"/><path d="M13 5H7a4 4 0 100 8h1"/></svg></button><button class="ctrl-btn" id="dirCCW"><svg viewBox="0 0 16 16" width="12" height="12" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M5 3L3 5l2 2"/><path d="M3 5h6a4 4 0 110 8H8"/></svg></button></div></div>
             <div class="ctrl-row"><span class="ctrl-label">Скорость</span><input type="range" class="ctrl-slider" id="speedSlider" min="0" max="200" value="100" step="1"></div>

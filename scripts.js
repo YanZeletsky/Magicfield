@@ -35,7 +35,7 @@ function switchTool(tool){
     toolIcons.forEach(t=>t.classList.toggle('active',t.dataset.tool===tool));
     Object.keys(pages).forEach(k=>{pages[k].classList.toggle('active',k===tool);});
     closeCustomPanel();
-    if(tool==='settings')buildCurrentModeSettings();
+    if(tool==='settings'){buildCurrentModeSettings();if(currentScene==='3d')buildModeSettings3D();}
     if(tool==='music')buildMusicParams();
 }
 
@@ -207,26 +207,30 @@ document.querySelectorAll('.scene-btn').forEach(btn=>{
         currentScene=btn.dataset.scene;
         document.querySelectorAll('.scene-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
         // показать/скрыть секции в режимах
-        document.getElementById('modes2D').style.display=currentScene==='2d'?'':'none';
+        document.getElementById('modes2D').style.display=(currentScene==='2d'||currentScene==='4d')?'':'none';
         document.getElementById('modes3D').style.display=currentScene==='3d'?'':'none';
         document.getElementById('modesVisual').style.display=currentScene==='visual'?'':'none';
         // показать/скрыть настройки
-        const s2d=document.getElementById('shapeSection2D');if(s2d)s2d.style.display=currentScene==='2d'?'':'none';
-        const sc=document.getElementById('settingsCommon');if(sc)sc.style.display=currentScene==='2d'?'':'none';
+        const s2d=document.getElementById('shapeSection2D');if(s2d)s2d.style.display=(currentScene==='2d'||currentScene==='4d')?'':'none';
+        const sc=document.getElementById('settingsCommon');if(sc)sc.style.display=(currentScene==='2d'||currentScene==='4d')?'':'none';
         const s3d=document.getElementById('shapeSectionTest');if(s3d)s3d.style.display=currentScene==='3d'?'':'none';
         const sb=document.getElementById('shapeSectionBeta');if(sb)sb.style.display=currentScene==='visual'?'':'none';
+        const s4dt=document.getElementById('shapeSection4DTime');if(s4dt)s4dt.style.display=currentScene==='4d'?'':'none';
         // скрыть старые секции
         const s1d=document.getElementById('shapeSection1D');if(s1d)s1d.style.display='none';
         const s4d=document.getElementById('shapeSection4D');if(s4d)s4d.style.display='none';
         const s3do=document.getElementById('shapeSection3D');if(s3do)s3do.style.display='none';
         // переключить dimension
         if(currentScene==='2d'){
-            dimension=0;mode1D=false;switchFromTest();
+            dimension=0;mode1D=false;trailMode=false;switchFromTest();
             for(let i=0;i<TOTAL;i++){velX[i]=0;velY[i]=0;}
         }else if(currentScene==='3d'){
-            dimension=3;mode1D=false;switchToTest();
+            dimension=3;mode1D=false;trailMode=false;switchToTest();
+        }else if(currentScene==='4d'){
+            dimension=0;mode1D=false;trailMode=true;switchFromTest();
+            for(let i=0;i<TOTAL;i++){velX[i]=0;velY[i]=0;}
         }else if(currentScene==='visual'){
-            dimension=4;mode1D=false;switchFromTest();initBetaVisual();
+            dimension=4;mode1D=false;trailMode=false;switchFromTest();initBetaVisual();
         }
         const wc=document.getElementById('wireCanvas');
         if(wc)wc.style.display=(currentScene==='2d'&&barrierShape>0)?'block':'none';
@@ -250,17 +254,55 @@ document.querySelectorAll('#modeTabs .sub-btn').forEach(btn=>{
         buildModeList();
     });
 });
-// 3D mode buttons (in modes panel)
-document.querySelectorAll('#testModeBtns3D .sub-btn').forEach(btn=>{
+// 🌿 3D mode list — динамический грид режимов
+let currentModeTab3D='manual';
+function buildModeList3D(){
+    const list=document.getElementById('modesList3D');if(!list)return;list.innerHTML='';list.className='modes-icon-grid';
+    const filter=currentModeTab3D==='manual'?manualModes3D:autoModes3D.concat(['mandala']);
+    modes.forEach(mode=>{
+        if(!filter.includes(mode.key))return;
+        const item=document.createElement('div');item.className='mode-icon-item'+(mode.key===testMode3D?' active':'');
+        item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>';
+        onTap(item,function(e){e.stopPropagation();
+            testMode3D=mode.key;buildModeList3D();
+            const ms=document.getElementById('mandalaSubSection3D');if(ms)ms.style.display=testMode3D==='mandala'?'':'none';
+            const mds=document.getElementById('testMandalaSettings');if(mds)mds.style.display=testMode3D==='mandala'?'':'none';
+            buildModeSettings3D();
+            if(threeReady){if(testMode3D==='mandala')rebuildMandalaHome(mandalaSubMode3D);else rebuild3DParticles();}
+        });
+        list.appendChild(item);
+    });
+}
+function buildModeSettings3D(){
+    const container=document.getElementById('modeSettings3D');if(!container)return;container.innerHTML='';
+    const label=document.getElementById('modeSettingsLabel3D');
+    if(testMode3D==='vortex'||testMode3D==='mandala'){if(label)label.style.display='none';return;}
+    const modeName=modes.find(m=>m.key===testMode3D)?.name||testMode3D;
+    if(label){label.textContent=modeName;label.style.display='block';}
+    const defs=modeParamDefs[testMode3D];if(!defs)return;
+    defs.forEach(def=>{
+        if(def.type==='buttons'){const wrap=document.createElement('div');wrap.className='sub-modes';
+            def.options.forEach((opt,idx)=>{const btn=document.createElement('div');btn.className='sub-btn'+(modeParams[testMode3D][def.key]===idx?' active':'');btn.textContent=opt;
+                onTap(btn,function(e){e.stopPropagation();modeParams[testMode3D][def.key]=idx;buildModeSettings3D();});wrap.appendChild(btn);});
+            container.appendChild(wrap);return;}
+        const row=document.createElement('div');row.className='ctrl-row';
+        const lb=document.createElement('span');lb.className='ctrl-label';lb.textContent=def.label;
+        const val=document.createElement('span');val.className='ctrl-value';const cv=modeParams[testMode3D][def.key];
+        val.textContent=def.step>=1?cv:cv.toFixed(1);
+        const slider=document.createElement('input');slider.type='range';slider.className='ctrl-slider';slider.min=def.min;slider.max=def.max;slider.step=def.step;slider.value=cv;
+        slider.addEventListener('input',e=>{e.stopPropagation();const v=+slider.value;modeParams[testMode3D][def.key]=v;val.textContent=def.step>=1?v:v.toFixed(1);});
+        slider.addEventListener('touchstart',e=>e.stopPropagation());
+        row.appendChild(lb);row.appendChild(slider);row.appendChild(val);container.appendChild(row);
+    });
+}
+document.querySelectorAll('#modeTabs3D .sub-btn').forEach(btn=>{
     onTap(btn,function(e){e.stopPropagation();
-        testMode3D=btn.dataset.tmode;
-        document.querySelectorAll('#testModeBtns3D .sub-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-        document.getElementById('mandalaSubSection3D').style.display=testMode3D==='mandala'?'':'none';
-        document.getElementById('testVortexSettings').style.display=testMode3D==='vortex'?'':'none';
-        document.getElementById('testMandalaSettings').style.display=testMode3D==='mandala'?'':'none';
-        if(threeReady){if(testMode3D==='vortex')rebuild3DParticles();else rebuildMandalaHome(mandalaSubMode3D);}
+        currentModeTab3D=btn.dataset.mtab3d;
+        document.querySelectorAll('#modeTabs3D .sub-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+        buildModeList3D();
     });
 });
+buildModeList3D();
 document.querySelectorAll('#mandalaSubBtns3D .sub-btn').forEach(btn=>{
     onTap(btn,function(e){e.stopPropagation();
         mandalaSubMode3D=+btn.dataset.msub;
@@ -487,6 +529,13 @@ document.getElementById('glCanvas').addEventListener('wheel',e=>{if(dimension===
 betaSliderDefs.forEach(d=>{const sl=document.getElementById(d.id),vl=document.getElementById(d.vid);
 if(sl){sl.addEventListener('input',e=>{e.stopPropagation();const v=+sl.value/d.div;d.s(v);vl.textContent=v.toFixed(2);});sl.addEventListener('touchstart',e=>e.stopPropagation());}});
 
+// 🌿 4D trail sliders — здесь время обретает форму
+const trailFadeSl=document.getElementById('trailFadeSlider'),trailFadeValEl=document.getElementById('trailFadeVal');
+if(trailFadeSl){trailFadeSl.addEventListener('input',e=>{e.stopPropagation();const v=+trailFadeSl.value/100;trailFade=0.01+(1-v)*0.29;trailFadeValEl.textContent=v.toFixed(2);});trailFadeSl.addEventListener('touchstart',e=>e.stopPropagation());}
+const trailLayersSl=document.getElementById('trailLayersSlider'),trailLayersValEl=document.getElementById('trailLayersVal');
+if(trailLayersSl){trailLayersSl.addEventListener('input',e=>{e.stopPropagation();trailLayers=+trailLayersSl.value;trailLayersValEl.textContent=trailLayers;});trailLayersSl.addEventListener('touchstart',e=>e.stopPropagation());}
+const trailSpreadSl=document.getElementById('trailSpreadSlider'),trailSpreadValEl=document.getElementById('trailSpreadVal');
+if(trailSpreadSl){trailSpreadSl.addEventListener('input',e=>{e.stopPropagation();trailSpread=+trailSpreadSl.value;trailSpreadValEl.textContent=trailSpread;});trailSpreadSl.addEventListener('touchstart',e=>e.stopPropagation());}
 // --- 4D: Объёмный куб с песком ---
 let p3X,p3Y,p3Z,v3X,v3Y,v3Z;
 let vol4dSize=0.35,vol4dChaos=0.3;
@@ -646,6 +695,8 @@ function drawWireframe(){
 }
 
 let spinDirection=1,spinSpeed=1,zoomLevel=1,brightnessLevel=1,userGap=3;
+// 🌿 4D — время стало видимым
+let trailMode=false,trailFade=0.08,trailLayers=3,trailSpread=15,trailLayerBuf=null;
 
 // --- Барьеры ---
 let barrierShape=0,barrierLayers=1; // 0=нет,1=круг,2=квадрат,3=треугольник
@@ -831,7 +882,7 @@ function initGPU(){if(!gl)return false;program=mkProgram(mkShader(gl.VERTEX_SHAD
 if(gl){glCanvas.addEventListener('webglcontextlost',function(e){e.preventDefault();contextLost=true;cancelAnimationFrame(animFrame);useWebGL=false;glCanvas.classList.add('hidden');c2dCanvas.classList.remove('hidden');ctx2d=c2dCanvas.getContext('2d');c2dCanvas.width=W;c2dCanvas.height=H;contextLost=false;lastTime=performance.now();animFrame=requestAnimationFrame(loop);});glCanvas.addEventListener('webglcontextrestored',function(){if(initGPU()){useWebGL=true;c2dCanvas.classList.add('hidden');glCanvas.classList.remove('hidden');gl.viewport(0,0,W,H);if(hue){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}contextLost=false;}});}
 
 let GAP,W,H,COLS,ROWS,TOTAL,homeX,homeY,posX,posY,velX,velY,hue,glPositions,colorCache=null;
-function init(){GAP=userGap;W=window.innerWidth;H=window.innerHeight;if(useWebGL){glCanvas.width=W;glCanvas.height=H;if(gl)gl.viewport(0,0,W,H);}else{c2dCanvas.width=W;c2dCanvas.height=H;}COLS=Math.ceil(W/GAP);ROWS=Math.ceil(H/GAP);TOTAL=COLS*ROWS;homeX=new Float32Array(TOTAL);homeY=new Float32Array(TOTAL);posX=new Float32Array(TOTAL);posY=new Float32Array(TOTAL);velX=new Float32Array(TOTAL);velY=new Float32Array(TOTAL);hue=new Float32Array(TOTAL);glPositions=new Float32Array(TOTAL*2);sTheta=new Float32Array(TOTAL);sPhi=new Float32Array(TOTAL);const cc=(COLS-1)/2,cr=(ROWS-1)/2,md=Math.sqrt(cc*cc+cr*cr);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;homeX[i]=c*GAP;homeY[i]=r*GAP;posX[i]=homeX[i];posY[i]=homeY[i];const dx=c-cc,dy=r-cr,dist=Math.sqrt(dx*dx+dy*dy);const proj=md>0?(dx*.7071+dy*.7071)/md:0,dr=md>0?dist/md:0;hue[i]=1/(1+Math.exp(-(2+dr*4)*proj));sTheta[i]=Math.PI*(r/(ROWS-1));sPhi[i]=2*Math.PI*c/COLS;}if(useWebGL&&gl){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}colorCache=new Uint8Array(TOTAL*3);sDTheta=new Float32Array(TOTAL);sDPhi=new Float32Array(TOTAL);}
+function init(){GAP=userGap;W=window.innerWidth;H=window.innerHeight;if(useWebGL){glCanvas.width=W;glCanvas.height=H;if(gl)gl.viewport(0,0,W,H);}else{c2dCanvas.width=W;c2dCanvas.height=H;}COLS=Math.ceil(W/GAP);ROWS=Math.ceil(H/GAP);TOTAL=COLS*ROWS;homeX=new Float32Array(TOTAL);homeY=new Float32Array(TOTAL);posX=new Float32Array(TOTAL);posY=new Float32Array(TOTAL);velX=new Float32Array(TOTAL);velY=new Float32Array(TOTAL);hue=new Float32Array(TOTAL);glPositions=new Float32Array(TOTAL*2);sTheta=new Float32Array(TOTAL);sPhi=new Float32Array(TOTAL);const cc=(COLS-1)/2,cr=(ROWS-1)/2,md=Math.sqrt(cc*cc+cr*cr);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;homeX[i]=c*GAP;homeY[i]=r*GAP;posX[i]=homeX[i];posY[i]=homeY[i];const dx=c-cc,dy=r-cr,dist=Math.sqrt(dx*dx+dy*dy);const proj=md>0?(dx*.7071+dy*.7071)/md:0,dr=md>0?dist/md:0;hue[i]=1/(1+Math.exp(-(2+dr*4)*proj));sTheta[i]=Math.PI*(r/(ROWS-1));sPhi[i]=2*Math.PI*c/COLS;}if(useWebGL&&gl){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}colorCache=new Uint8Array(TOTAL*3);sDTheta=new Float32Array(TOTAL);sDPhi=new Float32Array(TOTAL);trailLayerBuf=new Float32Array(TOTAL*2);}
 
 // Three.js 3D scene → scene3d.js
 
@@ -840,7 +891,7 @@ function init(){GAP=userGap;W=window.innerWidth;H=window.innerHeight;if(useWebGL
 
 
 let mouseDown=false,mousePos={x:0,y:0},touchPoints=[];
-function isUI(e){return e.target.closest('.anchor')||e.target.closest('.profile-panel')||e.target.closest('.toolbar')||e.target.closest('.side-panel')||e.target.closest('.custom-palette-panel')||e.target.closest('.beat-panel');}
+function isUI(e){return e.target.closest('.anchor')||e.target.closest('.profile-panel')||e.target.closest('.toolbar')||e.target.closest('.side-panel')||e.target.closest('.custom-palette-panel')||e.target.closest('.beat-panel')||e.target.closest('.scene-bar');}
 document.addEventListener('mousedown',e=>{if(isUI(e))return;if(e.button===0){mouseDown=true;mousePos={x:e.clientX,y:e.clientY};e.preventDefault();}});
 window.addEventListener('mousemove',e=>{if(isUI(e))return;mousePos={x:e.clientX,y:e.clientY};});
 window.addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;});
@@ -1094,7 +1145,24 @@ for(let i=0;i<TOTAL;i++){const px=posX[i],py=posY[i];if(isActive){const force=ge
 }// end dimension check
 
 function drawParticles(positions,o){gl.useProgram(program);gl.uniform2f(uResolution,W,H);gl.uniform1fv(uStopH,shaderH);gl.uniform1fv(uStopS,shaderS);gl.uniform1fv(uStopV,shaderV);gl.uniform1f(uAlpha,(o.alpha||1)*brightnessLevel);gl.uniform3f(uColorMask,o.r!==undefined?o.r:1,o.g!==undefined?o.g:1,o.b!==undefined?o.b:1);gl.uniform1f(uRotation,o.rotation||0);gl.uniform1f(uScale,(o.scale||1)*zoomLevel);gl.uniform2f(uOffset,o.ox||0,o.oy||0);gl.uniform1f(uPointScale,(o.pointScale||1)*zoomLevel);gl.uniform1f(uSphereMode,o.sphereMode||0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,positions,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.enableVertexAttribArray(aHue);gl.vertexAttribPointer(aHue,1,gl.FLOAT,false,0,0);gl.drawArrays(gl.POINTS,0,TOTAL);}
-function renderGL(){for(let i=0;i<TOTAL;i++){glPositions[i*2]=posX[i];glPositions[i*2+1]=posY[i];}gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);if(currentMode==='mandala'){const mp=modeParams.mandala;const sectors=Math.round(mp.sectors);const baseRot=time*.0003*spinDirection*(mp.mandalaSpin||1);for(let k=0;k<sectors;k++){const r=baseRot+k*Math.PI*2/sectors;drawParticles(glPositions,{rotation:r,alpha:Math.max(.15,1-k*(1/(sectors+2))),scale:1});}}else{drawParticles(glPositions,{});}}
+// 🌿 рисуем частицы с учётом мандалы (секторное зеркало)
+function renderWithMode(positions,baseAlpha){
+if(currentMode==='mandala'){const mp=modeParams.mandala;const sectors=Math.round(mp.sectors);const baseRot=time*.0003*spinDirection*(mp.mandalaSpin||1);for(let k=0;k<sectors;k++){const r=baseRot+k*Math.PI*2/sectors;drawParticles(positions,{rotation:r,alpha:baseAlpha*Math.max(.15,1-k*(1/(sectors+2))),scale:1});}}
+else{drawParticles(positions,{alpha:baseAlpha});}}
+
+function renderGL(){
+for(let i=0;i<TOTAL;i++){glPositions[i*2]=posX[i];glPositions[i*2+1]=posY[i];}
+if(trailMode){
+// 🌿 dim-quad — предыдущий кадр угасает, оставляя световой след
+gl.useProgram(quadProgram);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);gl.enableVertexAttribArray(aQuadPos);gl.vertexAttribPointer(aQuadPos,2,gl.FLOAT,false,0,0);
+gl.uniform1f(uDim,trailFade);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+// 🌿 temporal ghost layers — призраки из прошлых мгновений
+if(trailLayers>0&&trailLayerBuf){for(let layer=trailLayers;layer>=1;layer--){
+for(let i=0;i<TOTAL;i++){trailLayerBuf[i*2]=posX[i]-velX[i]*layer*trailSpread;trailLayerBuf[i*2+1]=posY[i]-velY[i]*layer*trailSpread;}
+renderWithMode(trailLayerBuf,0.35*(1-layer/(trailLayers+1)));}}
+}else{gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);}
+renderWithMode(glPositions,1);}
 function render2D(){if(!ctx2d)return;const imgData=ctx2d.createImageData(W,H),data=imgData.data;for(let i=0;i<TOTAL;i++){const px=posX[i]|0,py=posY[i]|0;if(px<0||px>=W||py<0||py>=H)continue;const r=colorCache[i*3],g=colorCache[i*3+1],b=colorCache[i*3+2];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const sx=px+dx,sy=py+dy;if(sx<0||sx>=W||sy<0||sy>=H)continue;const w=Math.exp(-(dx*dx+dy*dy)*.8)*1.2,off=(sy*W+sx)*4;data[off]=Math.min(255,data[off]+r*w);data[off+1]=Math.min(255,data[off+1]+g*w);data[off+2]=Math.min(255,data[off+2]+b*w);data[off+3]=255;}}ctx2d.putImageData(imgData,0,0);}
 function render(){if(useWebGL&&gl&&!contextLost)renderGL();else render2D();}
 let lastTime=performance.now(),animFrame;
