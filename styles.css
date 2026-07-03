@@ -41,6 +41,8 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .anchor.active { color:rgba(255,255,255,0.85); }
 .anchor-profile { top:14px; right:14px; }
 .anchor-eye { top:14px; left:14px; }
+.anchor-zoom { bottom:14px; right:14px; display:none; }
+@media (hover:none) and (pointer:coarse) { .anchor-zoom.visible { display:flex; } }
 
 /* --- Профиль --- */
 .profile-panel { position:fixed; top:62px; right:16px; z-index:15; width:230px; background:rgba(8,8,16,0.92); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:18px; opacity:0; transform:translateY(-8px); transition:opacity .25s,transform .25s; pointer-events:none; }
@@ -239,10 +241,14 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .sub-btn.locked-btn:hover { background:rgba(255,255,255,0.03); color:rgba(255,255,255,0.35); }
 
 /* --- Слайдеры --- */
-.ctrl-row { display:flex; align-items:center; gap:10px; padding:7px 4px; }
+.ctrl-row { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:7px 4px; }
 .ctrl-label { color:rgba(255,255,255,0.4); font-size:10px; letter-spacing:.4px; text-transform:uppercase; min-width:62px; flex-shrink:0; }
-.ctrl-value { color:rgba(255,255,255,0.35); font-size:9px; font-variant-numeric:tabular-nums; min-width:22px; text-align:right; flex-shrink:0; }
-.bass-style-label { color:rgba(255,255,255,0.5); font-size:9px; text-align:center; min-width:42px; flex-shrink:0; }
+.ctrl-value { display:none; }
+.bass-style-label { color:rgba(255,255,255,0.5); font-size:9px; text-align:center; min-width:42px; flex-shrink:0; display:none; }
+.ctrl-slider { -webkit-appearance:none; appearance:none; flex:1; min-width:0; height:3px; border-radius:2px; background:rgba(255,255,255,0.12); outline:none; }
+.ctrl-range-info { width:100%; display:flex; justify-content:space-between; padding:0 2px; margin-top:0; }
+.ctrl-range-info span { font-size:9px; font-variant-numeric:tabular-nums; color:rgba(255,255,255,0.25); }
+.ctrl-range-info .ctrl-current { color:rgba(255,255,255,0.6); font-weight:600; font-size:10px; }
 .ctrl-slider { -webkit-appearance:none; appearance:none; flex:1; height:3px; border-radius:2px; background:rgba(255,255,255,0.12); outline:none; }
 .ctrl-slider::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,0.8); cursor:pointer; box-shadow:0 0 4px rgba(0,0,0,0.5); }
 .ctrl-slider::-moz-range-thumb { width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,0.8); cursor:pointer; border:none; }
@@ -256,12 +262,22 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .ui-hidden .beat-panel,
 .ui-hidden .custom-palette-panel,
 .ui-hidden .anchor-profile,
+.ui-hidden .anchor-zoom,
 .ui-hidden .profile-panel,
 .ui-hidden .scene-bar { opacity:0 !important; pointer-events:none !important; }
 
 
 /* --- Сетка иконок режимов --- */
 .modes-icon-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:4px; }
+
+/* 🌿 Замки и тарифы */
+.locked { opacity:0.3 !important; pointer-events:auto; }
+.mode-icon-item.locked { position:relative; }
+.lock-icon { position:absolute; right:3px; top:2px; font-size:8px; line-height:1; }
+.lock-toast { position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.88); color:rgba(255,255,255,0.8); padding:10px 22px; border-radius:12px; font-size:12px; z-index:999; pointer-events:none; opacity:0; transition:opacity .3s; backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.08); }
+.lock-toast.show { opacity:1; }
+.dlc-toggle { display:flex; align-items:center; gap:8px; padding:8px 4px; color:rgba(255,255,255,0.4); font-size:11px; cursor:pointer; }
+.dlc-toggle input { accent-color:#7b2cbf; }
 .mode-icon-item {
     display:flex; flex-direction:column; align-items:center; gap:4px;
     padding:8px 4px; border-radius:10px; cursor:pointer;
@@ -281,6 +297,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
     .scene-btn { width:44px; height:44px; border-radius:10px; }
     .anchor-eye { top:8px; left:8px; width:52px; height:52px; border-radius:12px; }
     .anchor-profile { top:8px; right:8px; width:52px; height:52px; border-radius:12px; }
+    .anchor-zoom { bottom:80px; right:12px; width:52px; height:52px; border-radius:12px; }
     /* тулбар внизу */
     .toolbar {
         left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;

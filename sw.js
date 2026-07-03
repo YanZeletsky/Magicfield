@@ -1,4 +1,4 @@
-const CACHE_NAME = 'soundfield-v10';
+const CACHE_NAME = 'soundfield-v15';
 const ASSETS = [
   './',
   './index.html',

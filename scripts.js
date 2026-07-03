@@ -1,4 +1,29 @@
 // === Soundfield — scripts.js ===
+// 🌿 enhanceSliders — числа прорастают под каждым ползунком
+function enhanceSliders(root){
+    const container=root||document;
+    container.querySelectorAll('.ctrl-row').forEach(row=>{
+        if(row.querySelector('.ctrl-range-info'))return;
+        const slider=row.querySelector('.ctrl-slider');
+        if(!slider)return;
+        const oldVal=row.querySelector('.ctrl-value')||row.querySelector('.bass-style-label');
+        const info=document.createElement('div');info.className='ctrl-range-info';
+        const minEl=document.createElement('span');minEl.textContent=slider.min;
+        const curEl=document.createElement('span');curEl.className='ctrl-current';
+        curEl.textContent=oldVal?oldVal.textContent:slider.value;
+        const maxEl=document.createElement('span');maxEl.textContent=slider.max;
+        info.appendChild(minEl);info.appendChild(curEl);info.appendChild(maxEl);
+        row.appendChild(info);
+        // синхронизируем с обновлениями старого ctrl-value
+        if(oldVal){
+            const obs=new MutationObserver(()=>{curEl.textContent=oldVal.textContent;});
+            obs.observe(oldVal,{childList:true,characterData:true,subtree:true});
+        }
+        slider.addEventListener('input',()=>{
+            if(!oldVal)curEl.textContent=parseFloat(slider.value)%1===0?slider.value:parseFloat(slider.value).toFixed(2);
+        });
+    });
+}
 const cursorEl=document.getElementById('cursor');
 if(window.matchMedia('(hover:hover) and (pointer:fine)').matches){document.addEventListener('mousemove',e=>{cursorEl.style.left=e.clientX+'px';cursorEl.style.top=e.clientY+'px';});document.addEventListener('mousedown',()=>cursorEl.classList.add('active'));document.addEventListener('mouseup',()=>cursorEl.classList.remove('active'));}
 function onTap(el,fn){el.addEventListener('click',fn);el.addEventListener('touchend',function(e){e.preventDefault();e.stopPropagation();fn(e);},{passive:false});}
@@ -18,6 +43,8 @@ const beatPanel=document.getElementById('beatPanel');
 let activeTool='';
 
 function switchTool(tool){
+    if(tool==='music'&&!dlcAudio){showLockToast('Доступно в DLC Аудио');return;}
+    if(tool==='create'&&!dlcBeats){showLockToast('Доступно в DLC Биты');return;}
     if(tool==='create'){
         // бит-панель — отдельная нижняя панель
         if(activeTool==='create'){activeTool='';beatPanel.classList.remove('open');toolIcons.forEach(t=>t.classList.remove('active'));return;}
@@ -25,7 +52,7 @@ function switchTool(tool){
         sidePanel.classList.remove('open');closeCustomPanel();
         beatPanel.classList.add('open');
         toolIcons.forEach(t=>t.classList.toggle('active',t.dataset.tool==='create'));
-        buildBeatGrid();
+        buildBeatGrid();enhanceSliders();
         return;
     }
     beatPanel.classList.remove('open');
@@ -35,8 +62,8 @@ function switchTool(tool){
     toolIcons.forEach(t=>t.classList.toggle('active',t.dataset.tool===tool));
     Object.keys(pages).forEach(k=>{pages[k].classList.toggle('active',k===tool);});
     closeCustomPanel();
-    if(tool==='settings')buildCurrentModeSettings();
-    if(tool==='music')buildMusicParams();
+    if(tool==='settings'){buildCurrentModeSettings();if(currentScene==='3d')buildModeSettings3D();enhanceSliders(sidePanel);}
+    if(tool==='music'){buildMusicParams();enhanceSliders(sidePanel);}
 }
 
 toolIcons.forEach(t=>{onTap(t,e=>{e.stopPropagation();switchTool(t.dataset.tool);});});
@@ -50,6 +77,48 @@ document.addEventListener('click',e=>{
 });
 
 // --- Режимы ---
+// 🌿 Тарифы — корни доступа
+let userPlan='free'; // 'free' | 'pro'
+let dlcAudio=false, dlcBeats=false;
+const freeModes=['vortex','mandala'];
+
+function showLockToast(msg){
+    let t=document.getElementById('lockToast');
+    if(!t){t=document.createElement('div');t.id='lockToast';t.className='lock-toast';document.body.appendChild(t);}
+    t.textContent=msg;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('show'),1800);
+}
+function isModeAvail(key){return userPlan==='pro'||freeModes.includes(key);}
+
+function applyPlan(){
+    // scene bar — 3D locked in free
+    document.querySelectorAll('.scene-btn').forEach(b=>{
+        b.classList.toggle('locked',b.dataset.scene==='3d'&&userPlan==='free');
+    });
+    // toolbar — music/beats
+    document.querySelectorAll('.tool-icon').forEach(b=>{
+        if(b.dataset.tool==='music')b.classList.toggle('locked',!dlcAudio);
+        if(b.dataset.tool==='create')b.classList.toggle('locked',!dlcBeats);
+    });
+    // shapes — free = только Плоскость
+    document.querySelectorAll('#shapeBtns .sub-btn').forEach(b=>{
+        b.classList.toggle('locked',userPlan==='free'&&b.dataset.shape!=='0');
+    });
+    // rebuild mode lists
+    buildModeList();
+    if(typeof buildModeList3D==='function')buildModeList3D();
+    // если текущий режим заблокирован — сбросить на вихрь
+    if(!isModeAvail(currentMode)){currentMode='vortex';buildModeList();}
+    // если в 3D и free — вернуть в 2D
+    if(currentScene==='3d'&&userPlan==='free'){
+        document.querySelector('.scene-btn[data-scene="2d"]').click();
+    }
+    // profile panel — обновить бейдж
+    const badge=document.querySelector('.tier-badge');
+    const label=document.querySelector('.tier-label');
+    if(badge)badge.textContent=userPlan==='pro'?'Pro':'Touch';
+    if(label)label.textContent=userPlan==='pro'?'Полный доступ':'Бесплатный тариф';
+}
+
 // modes → tools.js
 let currentMode='vortex';
 let canvasShape=0;
@@ -61,9 +130,12 @@ function buildModeList(){
     const filter=currentModeTab==='manual'?manualModes:autoModes;
     modes.forEach(mode=>{
         if(!filter.includes(mode.key))return;
-        const item=document.createElement('div');item.className='mode-icon-item'+(mode.key===currentMode?' active':'');
-        item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>';
-        onTap(item,function(e){e.stopPropagation();currentMode=mode.key;buildModeList();if(activeTool==='settings')buildCurrentModeSettings();});
+        const avail=isModeAvail(mode.key);
+        const item=document.createElement('div');item.className='mode-icon-item'+(mode.key===currentMode?' active':'')+(!avail?' locked':'');
+        item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>'+(!avail?'<span class="lock-icon">🔒</span>':'');
+        onTap(item,function(e){e.stopPropagation();
+            if(!avail){showLockToast('Доступно в Pro');return;}
+            currentMode=mode.key;buildModeList();if(activeTool==='settings'){buildCurrentModeSettings();enhanceSliders();}});
         list.appendChild(item);
     });
 }
@@ -204,6 +276,7 @@ let deformSub=0,deformAmp=0.3,deformFreq=3,deformRad=0.36,deformRot=0.5,deformTi
 // Scene bar (верхняя панель сцен)
 document.querySelectorAll('.scene-btn').forEach(btn=>{
     onTap(btn,function(e){e.stopPropagation();
+        if(btn.classList.contains('locked')){showLockToast('3D доступен в Pro');return;}
         currentScene=btn.dataset.scene;
         document.querySelectorAll('.scene-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
         // показать/скрыть секции в режимах
@@ -216,6 +289,10 @@ document.querySelectorAll('.scene-btn').forEach(btn=>{
         const s3d=document.getElementById('shapeSectionTest');if(s3d)s3d.style.display=currentScene==='3d'?'':'none';
         const sb=document.getElementById('shapeSectionBeta');if(sb)sb.style.display=currentScene==='visual'?'':'none';
         const s4dt=document.getElementById('shapeSection4DTime');if(s4dt)s4dt.style.display=currentScene==='4d'?'':'none';
+        // 🌿 лупа — только 3D + мобилка/планшет
+        const zoomBtn=document.getElementById('zoomBtn3D');
+        if(zoomBtn){if(currentScene==='3d')zoomBtn.classList.add('visible');else{zoomBtn.classList.remove('visible','active');zoomMode3D=false;}}
+        enhanceSliders();
         // скрыть старые секции
         const s1d=document.getElementById('shapeSection1D');if(s1d)s1d.style.display='none';
         const s4d=document.getElementById('shapeSection4D');if(s4d)s4d.style.display='none';
@@ -261,13 +338,15 @@ function buildModeList3D(){
     const filter=currentModeTab3D==='manual'?manualModes3D:autoModes3D.concat(['mandala']);
     modes.forEach(mode=>{
         if(!filter.includes(mode.key))return;
-        const item=document.createElement('div');item.className='mode-icon-item'+(mode.key===testMode3D?' active':'');
-        item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>';
+        const avail=isModeAvail(mode.key);
+        const item=document.createElement('div');item.className='mode-icon-item'+(mode.key===testMode3D?' active':'')+(!avail?' locked':'');
+        item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>'+(!avail?'<span class="lock-icon">🔒</span>':'');
         onTap(item,function(e){e.stopPropagation();
+            if(!avail){showLockToast('Доступно в Pro');return;}
             testMode3D=mode.key;buildModeList3D();
             const ms=document.getElementById('mandalaSubSection3D');if(ms)ms.style.display=testMode3D==='mandala'?'':'none';
             const mds=document.getElementById('testMandalaSettings');if(mds)mds.style.display=testMode3D==='mandala'?'':'none';
-            buildModeSettings3D();
+            buildModeSettings3D();enhanceSliders();
             if(threeReady){if(testMode3D==='mandala')rebuildMandalaHome(mandalaSubMode3D);else rebuild3DParticles();}
         });
         list.appendChild(item);
@@ -424,6 +503,7 @@ function drawCapture1D(){
 // 2D формы
 document.querySelectorAll('#shapeBtns .sub-btn').forEach(btn=>{
     onTap(btn,function(e){e.stopPropagation();
+        if(btn.classList.contains('locked')){showLockToast('Доступно в Pro');return;}
         document.querySelectorAll('#shapeBtns .sub-btn').forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
         for(let i=0;i<TOTAL;i++){velX[i]=0;velY[i]=0;if(sDTheta){sDTheta[i]=0;sDPhi[i]=0;}}
@@ -1170,3 +1250,13 @@ function loop(ts){const dt=Math.min(.1,(ts-lastTime)/1000);lastTime=ts;if(dimens
 window.addEventListener('resize',()=>{cancelAnimationFrame(animFrame);init();if(wireCanvas){wireCanvas.width=window.innerWidth;wireCanvas.height=window.innerHeight;}if(dimension===2)init4D();if(dimension===4&&gl){gl.viewport(0,0,W,H);}if(dimension===3&&threeReady){renderer3D.setSize(W,H);camera3D.aspect=W/H;camera3D.updateProjectionMatrix();}lastTime=performance.now();animFrame=requestAnimationFrame(loop);});
 const initNorm=normalizeStops(currentStops);for(let i=0;i<9;i++){shaderH[i]=initNorm[i].h;shaderS[i]=initNorm[i].s;shaderV[i]=initNorm[i].v;}
 if(useWebGL)initGPU();init();render();animFrame=requestAnimationFrame(loop);
+enhanceSliders();applyPlan();
+// 🌿 тест тарифов
+document.querySelectorAll('#planBtns .sub-btn').forEach(btn=>{
+    onTap(btn,function(e){e.stopPropagation();userPlan=btn.dataset.plan;
+        document.querySelectorAll('#planBtns .sub-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyPlan();});
+});
+const dlcAudioTgl=document.getElementById('dlcAudioToggle');
+if(dlcAudioTgl)dlcAudioTgl.addEventListener('change',()=>{dlcAudio=dlcAudioTgl.checked;applyPlan();});
+const dlcBeatsTgl=document.getElementById('dlcBeatsToggle');
+if(dlcBeatsTgl)dlcBeatsTgl.addEventListener('change',()=>{dlcBeats=dlcBeatsTgl.checked;applyPlan();});

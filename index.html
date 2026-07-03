@@ -39,6 +39,10 @@
     <button class="anchor anchor-eye" id="eyeToggle">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M2.55 13.406c-.272-.373-.408-.56-.502-.92a2.5 2.5 0 0 1 0-.971c.094-.361.23-.548.502-.92C4.039 8.55 7.303 5 12 5s7.961 3.55 9.45 5.594c.272.373.408.56.502.92a2.5 2.5 0 0 1 0 .971c-.094.361-.23.548-.502.92C19.961 15.45 16.697 19 12 19s-7.961-3.55-9.45-5.594"/><path d="M12 14a2 2 0 1 0 0-4a2 2 0 0 0 0 4"/></g></svg>
     </button>
+    <!-- 🔍 Лупа-зум (3D мобилка) -->
+    <button class="anchor anchor-zoom" id="zoomBtn3D" onclick="toggleZoom3D()">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="M21 21l-4.35-4.35"/></svg>
+    </button>
 
     <!-- Профиль панель -->
     <aside class="profile-panel" id="profilePanel">
@@ -46,6 +50,13 @@
         <div class="profile-section"><div class="profile-avatar">S</div><div class="profile-info"><div class="profile-name">Soundfield User</div><div class="profile-email">user@soundfield.app</div></div></div>
         <div class="profile-tier"><div class="tier-badge">Touch</div><span class="tier-label">Бесплатный тариф</span></div>
         <div class="profile-menu"><div class="profile-menu-item">Аккаунт</div><div class="profile-menu-item">Тарифы</div><div class="profile-menu-item">Настройки</div><div class="profile-menu-item">О Soundfield</div></div>
+        <div class="panel-title" style="margin-top:14px">Тест тарифов</div>
+        <div class="sub-modes" id="planBtns">
+            <div class="sub-btn active" data-plan="free">Free</div>
+            <div class="sub-btn" data-plan="pro">Pro</div>
+        </div>
+        <label class="dlc-toggle" id="dlcAudioLabel"><input type="checkbox" id="dlcAudioToggle"><span>DLC Аудио</span></label>
+        <label class="dlc-toggle" id="dlcBeatsLabel"><input type="checkbox" id="dlcBeatsToggle"><span>DLC Биты</span></label>
     </aside>
 
     <!-- Левая панель инструментов (GoPaint стиль) -->
