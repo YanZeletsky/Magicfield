@@ -262,110 +262,111 @@ function getVortexForce3D(px,py,pz,pts){
     }
     return{fx,fy,fz};
 }
-// 🌿 3D-силы — масштабированы по образцу вихря (vortexForce3D ≈ 0.15)
+// 🌿 3D-силы — каждый инструмент дышит в трёх измерениях
 const manualModes3D=['vortex','turbulence','electrostatic','wave','pulsar','swarm'];
 const autoModes3D=['fibonacci','lorenz','mycelium','breathing'];
 
 function getTurbulenceForce3D(px,py,pz,pts,t){
-    let fx=0,fy=0,fz=0;const mp=modeParams.turbulence,inten=mp.intensity||1,ns=mp.noiseScale||1,f3d=vortexForce3D;
+    let fx=0,fy=0,fz=0;const mp=modeParams.turbulence,inten=mp.intensity||1,ns=mp.noiseScale||1;
     for(let p=0;p<pts.length;p++){const pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
         const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.05)continue;
         const nx=dx/dist,ny=dy/dist,nz=dz/dist,str=pt.strength||1;
         const n1=Math.sin(px*ns+t*2)*Math.cos(py*ns*1.3+t*1.6);
         const n2=Math.sin(py*ns*0.9+t*2.2)*Math.cos(pz*ns+t*1.4);
         const n3=Math.sin(pz*ns*1.1+t*1.8)*Math.cos(px*ns*0.8+t*2.4);
-        const a=(1+n1*0.5)*f3d*inten/(dist+0.5)*str;
-        fx+=nx*a+(-nz)*n2*a*0.3;fy+=ny*a+nx*n3*a*0.3;fz+=nz*a+ny*n1*a*0.3;}
+        const f=(1.5+n1)*inten/(dist*0.3+0.5)*str;
+        fx+=nx*f+(-nz)*n2*0.6*str*inten;fy+=ny*f+nx*n3*0.6*str*inten;fz+=nz*f+ny*n1*0.6*str*inten;}
     return{fx,fy,fz};}
 
 function getElectroForce3D(px,py,pz,pts,t){
-    let fx=0,fy=0,fz=0;const mp=modeParams.electrostatic,ch=mp.charge||1,cr=mp.crystal||1,f3d=vortexForce3D;
+    let fx=0,fy=0,fz=0;const mp=modeParams.electrostatic,ch=mp.charge||1,cr=mp.crystal||1;
     for(let p=0;p<pts.length;p++){const pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
         const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.1)continue;
         const nx=dx/dist,ny=dy/dist,nz=dz/dist,str=pt.strength||1;
-        const sign=(p%2===0)?1:-1,a=sign*f3d*ch*2/(dist*dist+0.5)*str;
-        fx+=nx*a;fy+=ny*a;fz+=nz*a;
-        const ang=Math.atan2(dz,dx),cr2=Math.sin(ang*4+dist*0.3)*f3d*cr*0.3/(dist+0.5)*str;
-        fx+=(-nz)*cr2;fz+=nx*cr2;fy+=Math.sin(ang*3+t)*f3d*cr*0.2/(dist+0.5)*str;}
+        const sign=(p%2===0)?1:-1,f=sign*ch*2/(dist*dist+0.5)*str;
+        fx+=nx*f;fy+=ny*f;fz+=nz*f;
+        const a=Math.atan2(dz,dx),cr2=Math.sin(a*4+dist*0.3)*cr*0.5/(dist*0.3+0.5)*str;
+        fx+=(-nz)*cr2;fz+=nx*cr2;fy+=Math.sin(a*3+t)*cr*0.3/(dist*0.3+0.5)*str;}
     return{fx,fy,fz};}
 
 function getWaveForce3D(px,py,pz,pts,t){
-    let fx=0,fy=0,fz=0;const mp=modeParams.wave,freq=mp.frequency||1,amp=mp.amplitude||1,f3d=vortexForce3D;
+    let fx=0,fy=0,fz=0;const mp=modeParams.wave,freq=mp.frequency||1,amp=mp.amplitude||1;
     for(let p=0;p<pts.length;p++){const pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
         const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.05)continue;
-        const str=pt.strength||1,a=f3d*amp*2*Math.sin(dist*freq*2-t*3)/(dist+0.5)*str;
-        fx+=dx/dist*a;fy+=dy/dist*a;fz+=dz/dist*a;}
+        const str=pt.strength||1,f=amp*1.5*Math.sin(dist*freq*2-t*3)/(dist*0.3+0.5)*str;
+        fx+=dx/dist*f;fy+=dy/dist*f;fz+=dz/dist*f;}
     return{fx,fy,fz};}
 
 function getPulsarForce3D(px,py,pz,pts,t){
-    let fx=0,fy=0,fz=0;const mp=modeParams.pulsar,ps=mp.pulseSpeed||1,tg=mp.tangent||1,f3d=vortexForce3D;
+    let fx=0,fy=0,fz=0;const mp=modeParams.pulsar,ps=mp.pulseSpeed||1,tg=mp.tangent||1;
     for(let p=0;p<pts.length;p++){const pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
         const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.05)continue;
         const nx=dx/dist,ny=dy/dist,nz=dz/dist,str=pt.strength||1;
-        const w=Math.sin(dist*0.8-t*ps*4),a=w*f3d*1.5/(dist+0.4)*str;
-        fx+=nx*a;fy+=ny*a;fz+=nz*a;
-        const tga=f3d*tg*0.3/(dist+0.5)*str;
-        fx+=(-nz)*tga;fz+=nx*tga;fy+=Math.sin(t*ps*2+dist)*ny*tga*0.5;}
+        const w=Math.sin(dist*0.8-t*ps*4)*str,f=w*1.5/(dist*0.3+0.4);
+        fx+=nx*f;fy+=ny*f;fz+=nz*f;
+        fx+=(-nz)*0.5*tg/(dist*0.3+0.5)*str;fz+=nx*0.5*tg/(dist*0.3+0.5)*str;
+        fy+=Math.sin(t*ps*2+dist)*ny*0.3*tg/(dist*0.3+0.5)*str;}
     return{fx,fy,fz};}
 
 function getSwarmForce3D(px,py,pz,pts,t){
-    let fx=0,fy=0,fz=0;const mp=modeParams.swarm,coh=mp.cohesion||1,sep=mp.separation||1,f3d=vortexForce3D;
+    let fx=0,fy=0,fz=0;const mp=modeParams.swarm,coh=mp.cohesion||1,sep=mp.separation||1;
     for(let p=0;p<pts.length;p++){const pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
         const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.05)continue;
         const nx=dx/dist,ny=dy/dist,nz=dz/dist,str=pt.strength||1;
-        const cohF=f3d*coh*1.5/(dist+0.5);
-        const sepF=dist<1.5?-f3d*sep*3/(dist*dist+0.3):0;
-        const ali=Math.sin(t*2+dist*3)*f3d*0.3;
-        const a=(cohF+sepF+ali)*str;
-        fx+=nx*a;fy+=ny*a;fz+=nz*a;}
+        const cohF=coh*0.8/(dist*0.3+0.5),sepF=dist<1.5?-sep*2/(dist*dist+0.3):0;
+        const ali=Math.sin(t*2+dist*3)*0.4,f=(cohF+sepF+ali)*str;
+        fx+=nx*f;fy+=ny*f;fz+=nz*f;}
     return{fx,fy,fz};}
 
 function getFibonacciForce3D(px,py,pz,pts,t){
-    let fx=0,fy=0,fz=0;const mp=modeParams.fibonacci,tight=mp.spiralTight||1,mf=mp.force||1,f3d=vortexForce3D;
+    let fx=0,fy=0,fz=0;const mp=modeParams.fibonacci,tight=mp.spiralTight||1,mf=mp.force||1;
     for(let p=0;p<pts.length;p++){const pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
         const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.05)continue;
         const nx=dx/dist,ny=dy/dist,nz=dz/dist,str=pt.strength||1;
-        const sa=Math.log(dist+1)*1.618*2.4*tight,a=f3d*mf*1.5/(dist+0.3)*str;
+        const sa=Math.log(dist+1)*1.618*2.4*tight,f=mf*1.2/(dist*0.3+0.3)*str;
         const ca=Math.cos(sa),sna=Math.sin(sa);
-        fx+=(nx*ca-nz*sna)*a;fz+=(nx*sna+nz*ca)*a;fy+=ny*a*0.5+Math.sin(sa+t)*a*0.2;}
+        fx+=(nx*ca-nz*sna)*f;fz+=(nx*sna+nz*ca)*f;fy+=ny*f*0.5+Math.sin(sa+t)*f*0.3;}
     return{fx,fy,fz};}
 
 function getLorenzForce3D(px,py,pz,pts,t){
-    let fx=0,fy=0,fz=0;const mp=modeParams.lorenz,spd=mp.speed||1,mf=mp.force||1,f3d=vortexForce3D;
-    // Лоренц — бабочка, рождённая для трёх измерений
+    let fx=0,fy=0,fz=0;const mp=modeParams.lorenz,spd=mp.speed||1,mf=mp.force||1;
+    // Лоренц — бабочка рождённая для трёх измерений
     const sigma=10,rho=28,beta=8/3,scale=0.3;
     const lx=px*scale,ly=py*scale,lz=pz*scale+25;
     const dxl=sigma*(ly-lx)*spd,dyl=(lx*(rho-lz)-ly)*spd,dzl=(lx*ly-beta*lz)*spd;
     const len=Math.sqrt(dxl*dxl+dyl*dyl+dzl*dzl)+0.01;
-    fx+=dxl/len*f3d*mf;fy+=dyl/len*f3d*mf;fz+=dzl/len*f3d*mf;
+    fx+=dxl/len*mf*0.5;fy+=dyl/len*mf*0.5;fz+=dzl/len*mf*0.5;
     for(let p=0;p<pts.length;p++){const pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
         const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.05)continue;
-        const str=pt.strength||1,a=f3d*mf/(dist+0.3)*str;
-        fx+=dx/dist*a;fy+=dy/dist*a;fz+=dz/dist*a;}
+        const str=pt.strength||1,f=mf*0.5/(dist*0.3+0.3)*str;
+        fx+=dx/dist*f;fy+=dy/dist*f;fz+=dz/dist*f;}
     return{fx,fy,fz};}
 
 function getMyceliumForce3D(px,py,pz,pts,t){
-    let fx=0,fy=0,fz=0;const mp=modeParams.mycelium,gr=mp.growth||1,br=mp.branching||1,f3d=vortexForce3D;
+    let fx=0,fy=0,fz=0;const mp=modeParams.mycelium,gr=mp.growth||1,br=mp.branching||1;
     for(let p=0;p<pts.length;p++){const pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
         const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.05)continue;
         const nx=dx/dist,ny=dy/dist,nz=dz/dist,str=pt.strength||1;
         const pulse=Math.sin(t*2*gr+dist*0.5)*0.5+0.5;
-        const a=f3d*gr*1.5/(dist+0.3)*(0.6+pulse*0.4)*str;
-        fx+=nx*a;fy+=ny*a;fz+=nz*a;
-        const ang=Math.atan2(dz,dx),bf=Math.sin(ang*3*br+t*2)*f3d*br*0.3/(dist+0.3)*str;
-        fx+=(-nz)*bf;fz+=nx*bf;fy+=Math.sin(ang*2*br+t*1.5)*f3d*br*0.2/(dist+0.3)*str;}
+        const f=1.0/(dist*0.2+0.3)*(0.6+pulse*0.4)*str*gr;
+        fx+=nx*f;fy+=ny*f;fz+=nz*f;
+        const a=Math.atan2(dz,dx),bf=Math.sin(a*3*br+t*2)*br*0.5/(dist*0.2+0.3)*str;
+        fx+=(-nz)*bf;fz+=nx*bf;fy+=Math.sin(a*2*br+t*1.5)*br*0.3/(dist*0.2+0.3)*str;}
     return{fx,fy,fz};}
 
 function getBreathingForce3D(px,py,pz,pts,t){
-    let fx=0,fy=0,fz=0;const mp=modeParams.breathing,bs=mp.breathSpeed||1,dp=mp.depth||1,f3d=vortexForce3D;
-    const br=Math.sin(t*bs*2)*0.5+0.5;
+    let fx=0,fy=0,fz=0;const mp=modeParams.breathing,bs=mp.breathSpeed||1,dp=mp.depth||1;
+    const dist=Math.sqrt(px*px+py*py+pz*pz);
+    if(dist>0.05){const nx=px/dist,ny=py/dist,nz=pz/dist;
+        const br=Math.sin(t*bs*2)*0.5+0.5,f=br*dp*0.8/(dist*0.2+0.3);
+        fx+=nx*f;fy+=ny*f;fz+=nz*f;}
     for(let p=0;p<pts.length;p++){const pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
-        const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.05)continue;
-        const str=pt.strength||1,a=f3d*dp*br*2/(dist+0.3)*str;
-        fx+=dx/dist*a;fy+=dy/dist*a;fz+=dz/dist*a;}
+        const d=Math.sqrt(dx*dx+dy*dy+dz*dz);if(d<0.05)continue;
+        const str=pt.strength||1,f=dp*0.5/(d*0.3+0.3)*str;
+        fx+=dx/d*f;fy+=dy/d*f;fz+=dz/d*f;}
     return{fx,fy,fz};}
 
-// 🌿 диспетчер — направляет поток к нужному инструменту
+// 🌿 диспетчер — направляет поток силы к нужному инструменту
 function getForce3D(px,py,pz,pts,mode,t){
     if(mode==='vortex')return getVortexForce3D(px,py,pz,pts);
     if(mode==='turbulence')return getTurbulenceForce3D(px,py,pz,pts,t);
@@ -481,6 +482,9 @@ function updatePhysics3D(dt){
         pts.push({x:Math.sin(t)*2,y:Math.cos(t*0.7)*2,z:0,strength:e*2});
         if(musicBands.bass>0.3)pts.push({x:0,y:0,z:0,strength:musicBands.bass*3});
     }
+    // 🌿 автоматы всегда живые — виртуальный центр
+    const isAuto=autoModes3D.includes(testMode3D);
+    if(isAuto&&pts.length===0)pts.push({x:0,y:0,z:0,strength:1});
     const active=pts.length>0;
     for(let i=0;i<total3D;i++){
         const i3=i*3,px=positions3D[i3],py=positions3D[i3+1],pz=positions3D[i3+2];

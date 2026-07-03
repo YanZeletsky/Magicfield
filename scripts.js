@@ -35,7 +35,7 @@ function switchTool(tool){
     toolIcons.forEach(t=>t.classList.toggle('active',t.dataset.tool===tool));
     Object.keys(pages).forEach(k=>{pages[k].classList.toggle('active',k===tool);});
     closeCustomPanel();
-    if(tool==='settings'){buildCurrentModeSettings();if(currentScene==='3d')buildModeSettings3D();}
+    if(tool==='settings')buildCurrentModeSettings();
     if(tool==='music')buildMusicParams();
 }
 
