@@ -141,6 +141,20 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 }
 .palette-item.active .palette-name { color:rgba(255,255,255,0.8); }
 .palette-item:hover .palette-name { color:rgba(255,255,255,0.6); }
+.palette-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:6px; }
+.palette-chip { height:32px; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:all .2s; display:flex; align-items:center; justify-content:center; }
+.palette-chip:hover { border-color:rgba(255,255,255,0.2); }
+.palette-chip.active { border-color:rgba(255,255,255,0.5); box-shadow:0 0 10px rgba(123,44,191,0.25); }
+.palette-chip-special { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.08); font-size:14px; }
+
+/* 🌿 Color Picker — ползунки (инлайн в custom panel) */
+.cp-slider-row { display:flex; align-items:center; gap:8px; padding:4px 0; }
+.cp-slider-label { color:rgba(255,255,255,0.35); font-size:9px; min-width:52px; }
+.cp-range { -webkit-appearance:none; appearance:none; flex:1; height:10px; border-radius:5px; outline:none; cursor:pointer; }
+.cp-range::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:#fff; border:2px solid rgba(0,0,0,0.2); box-shadow:0 1px 4px rgba(0,0,0,0.3); cursor:pointer; }
+.cp-range-hue { background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00); }
+.cp-range-sat { background:linear-gradient(to right,#888,#f00); }
+.cp-range-val { background:linear-gradient(to right,#000,#fff); }
 
 /* --- Музыка --- */
 .flow-upload-area { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.1); cursor:pointer; transition:all .2s; margin-bottom:10px; }
@@ -162,26 +176,33 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .custom-palette-panel {
     position:fixed; left:316px; top:50%; z-index:16;
     transform:translateY(-50%) translateX(-8px);
-    width:190px;
+    display:flex; gap:0;
     background:rgba(8,8,16,0.92); backdrop-filter:blur(24px);
     border:1px solid rgba(255,255,255,0.08); border-radius:14px;
-    padding:14px; opacity:0;
+    padding:0; opacity:0;
     transition:opacity .25s,transform .25s;
     pointer-events:none;
 }
 .custom-palette-panel.open { opacity:1; transform:translateY(-50%) translateX(0); pointer-events:auto; }
+.custom-colors-side { width:190px; padding:14px; }
+.custom-picker-side { width:0; overflow:hidden; transition:width .25s; padding:0; border-left:0 solid transparent; }
+.custom-picker-side.open { width:220px; padding:14px; border-left:1px solid rgba(255,255,255,0.06); }
 .cust-title { color:rgba(255,255,255,0.5); font-size:11px; font-weight:500; margin-bottom:10px; }
 .custom-preview { height:20px; border-radius:6px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.1); }
-.custom-stop-row { display:flex; align-items:center; gap:6px; padding:4px; }
-.custom-color-input { width:28px; height:22px; border:none; border-radius:4px; background:none; cursor:pointer; padding:0; -webkit-appearance:none; }
-.custom-color-input::-webkit-color-swatch-wrapper { padding:0; }
-.custom-color-input::-webkit-color-swatch { border:1px solid rgba(255,255,255,0.15); border-radius:4px; }
-.custom-color-label { color:rgba(255,255,255,0.3); font-size:9px; flex:1; }
+.custom-stop-row { display:flex; align-items:center; justify-content:center; gap:8px; padding:5px 4px; }
+.custom-color-swatch { width:30px; height:24px; border-radius:6px; cursor:pointer; border:2px solid transparent; flex-shrink:0; transition:border-color .2s; }
+.custom-color-swatch:hover { border-color:rgba(255,255,255,0.3); }
+.custom-color-swatch.editing { border-color:rgba(255,255,255,0.6); }
+.custom-color-label { color:rgba(255,255,255,0.3); font-size:9px; flex:1; text-align:center; }
 .custom-remove-btn { width:18px; height:18px; border-radius:50%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.25); font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; }
 .custom-remove-btn:hover { background:rgba(255,80,80,0.15); color:rgba(255,100,100,0.7); }
 .custom-actions { padding:8px 0 0; }
 .custom-add-btn { width:100%; padding:6px; border-radius:6px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:rgba(255,255,255,0.35); font-size:10px; cursor:pointer; transition:all .2s; }
 .custom-add-btn:hover { background:rgba(255,255,255,0.08); }
+/* inline picker в боковой секции */
+.cp-inline-preview { width:36px; height:36px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); margin-bottom:10px; }
+.cp-inline-label { color:rgba(255,255,255,0.35); font-size:10px; margin-bottom:4px; }
+.cp-inline-hex { color:rgba(255,255,255,0.4); font-size:10px; font-family:monospace; margin-top:6px; text-align:center; }
 
 /* --- Бит-панель (нижняя, горизонтальная) --- */
 .beat-panel {
@@ -263,7 +284,9 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .ui-hidden .custom-palette-panel,
 .ui-hidden .anchor-profile,
 .ui-hidden .anchor-zoom,
+.ui-hidden .anchor-music,
 .ui-hidden .profile-panel,
+.ui-hidden .bg-music-panel,
 .ui-hidden .scene-bar { opacity:0 !important; pointer-events:none !important; }
 
 
@@ -276,8 +299,45 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .lock-icon { position:absolute; right:3px; top:2px; font-size:8px; line-height:1; }
 .lock-toast { position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.88); color:rgba(255,255,255,0.8); padding:10px 22px; border-radius:12px; font-size:12px; z-index:999; pointer-events:none; opacity:0; transition:opacity .3s; backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.08); }
 .lock-toast.show { opacity:1; }
-.dlc-toggle { display:flex; align-items:center; gap:8px; padding:8px 4px; color:rgba(255,255,255,0.4); font-size:11px; cursor:pointer; }
-.dlc-toggle input { accent-color:#7b2cbf; }
+.dlc-row { display:flex; align-items:center; justify-content:space-between; padding:8px 4px; }
+.dlc-label { color:rgba(255,255,255,0.4); font-size:11px; }
+.toggle-switch { width:40px; height:22px; border-radius:11px; background:rgba(255,255,255,0.1); cursor:pointer; position:relative; transition:background .3s; }
+.toggle-switch.on { background:rgba(123,44,191,0.6); }
+.toggle-knob { position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform .3s; box-shadow:0 1px 3px rgba(0,0,0,0.3); }
+.toggle-switch.on .toggle-knob { transform:translateX(18px); }
+
+/* 🎵 Встроенный плеер */
+.anchor-music { bottom:14px; left:14px; }
+.music-pulse { display:none; position:absolute; top:4px; right:4px; width:6px; height:6px; border-radius:50%; background:#7b2cbf; }
+.music-pulse.on { display:block; animation:mpulse 1.5s ease-in-out infinite; }
+@keyframes mpulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }
+.bg-music-panel { position:fixed; bottom:0; left:0; right:0; z-index:60; background:rgba(10,10,14,0.96); backdrop-filter:blur(20px); border-top:1px solid rgba(255,255,255,0.08); border-radius:18px 18px 0 0; padding:16px 16px env(safe-area-inset-bottom,8px); transform:translateY(100%); transition:transform .35s cubic-bezier(.4,0,.2,1); }
+.bg-music-panel.open { transform:translateY(0); }
+.bgm-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.bgm-title { color:rgba(255,255,255,0.5); font-size:11px; text-transform:uppercase; letter-spacing:.5px; }
+.bgm-close { background:none; border:none; color:rgba(255,255,255,0.3); font-size:16px; cursor:pointer; padding:4px 8px; }
+.bgm-tracklist { max-height:180px; overflow-y:auto; margin-bottom:12px; }
+.bgm-track { display:flex; align-items:center; gap:10px; padding:8px 8px; border-radius:8px; cursor:pointer; transition:background .2s; color:rgba(255,255,255,0.45); font-size:12px; }
+.bgm-track:hover { background:rgba(255,255,255,0.05); }
+.bgm-track.active { background:rgba(123,44,191,0.15); color:rgba(255,255,255,0.85); }
+.bgm-track-num { width:18px; text-align:center; font-size:10px; opacity:.5; flex-shrink:0; }
+.bgm-track-info { flex:1; min-width:0; }
+.bgm-track-t { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bgm-track-a { font-size:10px; opacity:.5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bgm-now { text-align:center; margin-bottom:6px; }
+.bgm-track-name { color:rgba(255,255,255,0.8); font-size:13px; }
+.bgm-track-artist { color:rgba(255,255,255,0.35); font-size:10px; margin-top:2px; }
+.bgm-progress-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.bgm-time { color:rgba(255,255,255,0.3); font-size:9px; font-variant-numeric:tabular-nums; min-width:28px; }
+.bgm-progress { -webkit-appearance:none; appearance:none; flex:1; height:3px; border-radius:2px; background:rgba(255,255,255,0.1); outline:none; }
+.bgm-progress::-webkit-slider-thumb { -webkit-appearance:none; width:10px; height:10px; border-radius:50%; background:#fff; cursor:pointer; }
+.bgm-controls { display:flex; justify-content:center; align-items:center; gap:24px; margin-bottom:8px; }
+.bgm-btn { background:none; border:none; color:rgba(255,255,255,0.5); cursor:pointer; padding:6px; transition:color .2s; }
+.bgm-btn:hover { color:rgba(255,255,255,0.9); }
+.bgm-play { color:rgba(255,255,255,0.85); }
+.bgm-vol-row { display:flex; align-items:center; gap:8px; justify-content:center; }
+.bgm-vol { -webkit-appearance:none; appearance:none; width:100px; height:3px; border-radius:2px; background:rgba(255,255,255,0.1); outline:none; }
+.bgm-vol::-webkit-slider-thumb { -webkit-appearance:none; width:10px; height:10px; border-radius:50%; background:#fff; cursor:pointer; }
 .mode-icon-item {
     display:flex; flex-direction:column; align-items:center; gap:4px;
     padding:8px 4px; border-radius:10px; cursor:pointer;
@@ -298,6 +358,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
     .anchor-eye { top:8px; left:8px; width:52px; height:52px; border-radius:12px; }
     .anchor-profile { top:8px; right:8px; width:52px; height:52px; border-radius:12px; }
     .anchor-zoom { bottom:80px; right:12px; width:52px; height:52px; border-radius:12px; }
+    .anchor-music { bottom:80px; left:12px; width:52px; height:52px; border-radius:12px; }
     /* тулбар внизу */
     .toolbar {
         left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;
@@ -324,7 +385,8 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
     /* бит-панель */
     .beat-panel { bottom:56px; padding-bottom:8px; }
     /* кастом палитра */
-    .custom-palette-panel { left:8px; bottom:56px; top:auto; transform:none; }
+    .custom-palette-panel { left:8px; bottom:56px; top:auto; transform:none; flex-direction:column; }
+    .custom-picker-side.open { width:auto; border-left:none; border-top:1px solid rgba(255,255,255,0.06); }
 }
 @media (max-width:380px) {
     .scene-btn { padding:5px 8px; font-size:10px; }

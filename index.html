@@ -55,9 +55,40 @@
             <div class="sub-btn active" data-plan="free">Free</div>
             <div class="sub-btn" data-plan="pro">Pro</div>
         </div>
-        <label class="dlc-toggle" id="dlcAudioLabel"><input type="checkbox" id="dlcAudioToggle"><span>DLC Аудио</span></label>
-        <label class="dlc-toggle" id="dlcBeatsLabel"><input type="checkbox" id="dlcBeatsToggle"><span>DLC Биты</span></label>
+        <div class="dlc-row"><span class="dlc-label">DLC Аудио</span><div class="toggle-switch" id="dlcAudioSwitch"><div class="toggle-knob"></div></div></div>
+        <div class="dlc-row"><span class="dlc-label">DLC Биты</span><div class="toggle-switch" id="dlcBeatsSwitch"><div class="toggle-knob"></div></div></div>
     </aside>
+
+    <!-- 🎵 Встроенный плеер -->
+    <button class="anchor anchor-music" id="bgMusicToggle">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span class="music-pulse" id="musicPulse"></span>
+    </button>
+    <div class="bg-music-panel" id="bgMusicPanel">
+        <div class="bgm-header">
+            <span class="bgm-title">Музыка</span>
+            <button class="bgm-close" id="bgmClose">✕</button>
+        </div>
+        <div class="bgm-tracklist" id="bgmTracklist"></div>
+        <div class="bgm-now">
+            <div class="bgm-track-name" id="bgmNowTitle">—</div>
+            <div class="bgm-track-artist" id="bgmNowArtist"></div>
+        </div>
+        <div class="bgm-progress-row">
+            <span class="bgm-time" id="bgmTimeCur">0:00</span>
+            <input type="range" class="bgm-progress" id="bgmProgress" min="0" max="100" value="0" step="0.1">
+            <span class="bgm-time" id="bgmTimeDur">0:00</span>
+        </div>
+        <div class="bgm-controls">
+            <button class="bgm-btn" id="bgmPrev"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+            <button class="bgm-btn bgm-play" id="bgmPlay"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" id="bgmPlayIcon"><path d="M8 5v14l11-7z"/></svg></button>
+            <button class="bgm-btn" id="bgmNext"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M16 18h2V6h-2zm-8.5-6l8.5 6V6z" transform="scale(-1,1) translate(-24,0)"/></svg></button>
+        </div>
+        <div class="bgm-vol-row">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+            <input type="range" class="bgm-vol" id="bgmVol" min="0" max="100" value="60" step="1">
+        </div>
+    </div>
 
     <!-- Левая панель инструментов (GoPaint стиль) -->
     <div class="toolbar" id="toolbar">
@@ -84,17 +115,9 @@
         <!-- Режимы -->
         <div class="sp-page" id="spModes">
             <div id="modes2D">
-                <div class="sub-modes" id="modeTabs">
-                    <div class="sub-btn active" data-mtab="manual">Ручник</div>
-                    <div class="sub-btn" data-mtab="auto">Автомат</div>
-                </div>
-                <div class="modes-grid" id="modesList"></div>
+                <div class="modes-icon-grid" id="modesList"></div>
             </div>
             <div id="modes3D" style="display:none">
-                <div class="sub-modes" id="modeTabs3D">
-                    <div class="sub-btn active" data-mtab3d="manual">Ручник</div>
-                    <div class="sub-btn" data-mtab3d="auto">Автомат</div>
-                </div>
                 <div class="modes-icon-grid" id="modesList3D"></div>
                 <div id="mandalaSubSection3D" style="display:none">
                     <div class="sp-section-label">Вариант</div>
@@ -295,10 +318,19 @@
 
     <!-- Кастомная палитра -->
     <aside class="custom-palette-panel" id="customPalettePanel">
-        <div class="cust-title">Своя палитра</div>
-        <div class="custom-preview" id="customPreview"></div>
-        <div class="custom-stops" id="customStops"></div>
-        <div class="custom-actions"><button class="custom-add-btn" id="customAddStop">＋ Цвет</button></div>
+        <div class="custom-colors-side">
+            <div class="cust-title">Своя палитра</div>
+            <div class="custom-preview" id="customPreview"></div>
+            <div class="custom-stops" id="customStops"></div>
+            <div class="custom-actions"><button class="custom-add-btn" id="customAddStop">＋ Цвет</button></div>
+        </div>
+        <div class="custom-picker-side" id="customPickerSide">
+            <div class="cp-inline-preview" id="cpInlinePreview"></div>
+            <div class="cp-slider-row"><span class="cp-slider-label">Оттенок</span><input type="range" class="cp-range cp-range-hue" id="cpHueRange" min="0" max="360" value="0" step="1"></div>
+            <div class="cp-slider-row"><span class="cp-slider-label">Насыщ.</span><input type="range" class="cp-range cp-range-sat" id="cpSatRange" min="0" max="100" value="100" step="1"></div>
+            <div class="cp-slider-row"><span class="cp-slider-label">Яркость</span><input type="range" class="cp-range cp-range-val" id="cpValRange" min="0" max="100" value="100" step="1"></div>
+            <div class="cp-inline-hex" id="cpInlineHex">#FFFFFF</div>
+        </div>
     </aside>
 
     <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');</script>

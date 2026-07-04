@@ -127,9 +127,7 @@ const musicParamDefs=[{key:'reactivity',label:'Реактивность',min:.2,
 
 function buildModeList(){
     const list=document.getElementById('modesList');list.innerHTML='';list.className='modes-icon-grid';
-    const filter=currentModeTab==='manual'?manualModes:autoModes;
     modes.forEach(mode=>{
-        if(!filter.includes(mode.key))return;
         const avail=isModeAvail(mode.key);
         const item=document.createElement('div');item.className='mode-icon-item'+(mode.key===currentMode?' active':'')+(!avail?' locked':'');
         item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>'+(!avail?'<span class="lock-icon">🔒</span>':'');
@@ -324,20 +322,12 @@ document.querySelectorAll('.scene-btn').forEach(btn=>{
     });
 });
 // Mode tabs (Ручник / Автомат)
-document.querySelectorAll('#modeTabs .sub-btn').forEach(btn=>{
-    onTap(btn,function(e){e.stopPropagation();
-        currentModeTab=btn.dataset.mtab;
-        document.querySelectorAll('#modeTabs .sub-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-        buildModeList();
-    });
-});
-// 🌿 3D mode list — динамический грид режимов
-let currentModeTab3D='manual';
+// 🌿 3D mode list — единая сетка режимов
 function buildModeList3D(){
     const list=document.getElementById('modesList3D');if(!list)return;list.innerHTML='';list.className='modes-icon-grid';
-    const filter=currentModeTab3D==='manual'?manualModes3D:autoModes3D.concat(['mandala']);
+    const all3D=manualModes3D.concat(autoModes3D).concat(['mandala']);
     modes.forEach(mode=>{
-        if(!filter.includes(mode.key))return;
+        if(!all3D.includes(mode.key))return;
         const avail=isModeAvail(mode.key);
         const item=document.createElement('div');item.className='mode-icon-item'+(mode.key===testMode3D?' active':'')+(!avail?' locked':'');
         item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>'+(!avail?'<span class="lock-icon">🔒</span>':'');
@@ -374,13 +364,6 @@ function buildModeSettings3D(){
         row.appendChild(lb);row.appendChild(slider);row.appendChild(val);container.appendChild(row);
     });
 }
-document.querySelectorAll('#modeTabs3D .sub-btn').forEach(btn=>{
-    onTap(btn,function(e){e.stopPropagation();
-        currentModeTab3D=btn.dataset.mtab3d;
-        document.querySelectorAll('#modeTabs3D .sub-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-        buildModeList3D();
-    });
-});
 buildModeList3D();
 document.querySelectorAll('#mandalaSubBtns3D .sub-btn').forEach(btn=>{
     onTap(btn,function(e){e.stopPropagation();
@@ -929,14 +912,82 @@ let currentPalette='default',currentStops=JSON.parse(JSON.stringify(palettes.def
 
 const customPalettePanel=document.getElementById('customPalettePanel');let customPanelOpen=false;let customColors=['#4a47a3','#e63946','#f4a261','#2a9d8f','#48cae4'];
 function toggleCustomPanel(){customPanelOpen=!customPanelOpen;customPalettePanel.classList.toggle('open',customPanelOpen);if(customPanelOpen)buildCustomStops();}
-function closeCustomPanel(){customPanelOpen=false;customPalettePanel.classList.remove('open');}
 customPalettePanel.addEventListener('click',e=>e.stopPropagation());
 function getCustomGradientCSS(){return'linear-gradient(to right,'+customColors.join(',')+')';}
 function getCustomStops(){return customColors.map((c,i)=>{const hsv=hexToHSV(c);return{pos:customColors.length>1?i/(customColors.length-1):0,h:hsv.h,s:hsv.s,v:hsv.v};});}
 function applyCustomPalette(){if(transitionProgress>=1)currentStops=JSON.parse(JSON.stringify(currentStops));else currentStops=lerpStops(currentStops,targetStops,transitionProgress);targetStops=getCustomStops();transitionProgress=0;currentPalette='custom';buildPaletteList();}
-function buildCustomStops(){const container=document.getElementById('customStops');container.innerHTML='';const preview=document.getElementById('customPreview');preview.style.background=getCustomGradientCSS();customColors.forEach((color,idx)=>{const row=document.createElement('div');row.className='custom-stop-row';const input=document.createElement('input');input.type='color';input.className='custom-color-input';input.value=color;const label=document.createElement('span');label.className='custom-color-label';label.textContent=color.toUpperCase();input.addEventListener('input',e=>{e.stopPropagation();customColors[idx]=e.target.value;preview.style.background=getCustomGradientCSS();label.textContent=input.value.toUpperCase();if(currentPalette==='custom')applyCustomPalette();});input.addEventListener('touchstart',e=>e.stopPropagation());const remove=document.createElement('div');remove.className='custom-remove-btn';remove.textContent='×';onTap(remove,function(e){e.stopPropagation();if(customColors.length<=2)return;customColors.splice(idx,1);buildCustomStops();if(currentPalette==='custom')applyCustomPalette();});row.appendChild(input);row.appendChild(label);if(customColors.length>2)row.appendChild(remove);container.appendChild(row);});}
+// 🌿 Color Picker — инлайн сбоку, как продолжение панели
+let cpHue_=0,cpSat_=100,cpVal_=100,cpEditIdx=-1;
+function cpUpdate(){
+    const rgb=hsv2rgbCPU(cpHue_,cpSat_/100,cpVal_/100);
+    const hex='#'+((1<<24)+(rgb[0]<<16)+(rgb[1]<<8)+rgb[2]).toString(16).slice(1);
+    document.getElementById('cpInlinePreview').style.background=hex;
+    document.getElementById('cpInlineHex').textContent=hex.toUpperCase();
+    const rgbFull=hsv2rgbCPU(cpHue_,1,1);
+    document.getElementById('cpSatRange').style.background='linear-gradient(to right,#888,rgb('+rgbFull[0]+','+rgbFull[1]+','+rgbFull[2]+'))';
+    const rgbBr=hsv2rgbCPU(cpHue_,cpSat_/100,1);
+    document.getElementById('cpValRange').style.background='linear-gradient(to right,#000,rgb('+rgbBr[0]+','+rgbBr[1]+','+rgbBr[2]+'))';
+    if(cpEditIdx>=0&&cpEditIdx<customColors.length){
+        customColors[cpEditIdx]=hex;
+        document.getElementById('customPreview').style.background=getCustomGradientCSS();
+        if(currentPalette==='custom')applyCustomPalette();
+        buildCustomStops();
+    }
+}
+['cpHueRange','cpSatRange','cpValRange'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.addEventListener('input',e=>{e.stopPropagation();
+        cpHue_=+document.getElementById('cpHueRange').value;
+        cpSat_=+document.getElementById('cpSatRange').value;
+        cpVal_=+document.getElementById('cpValRange').value;
+        cpUpdate();});
+    el.addEventListener('touchstart',e=>e.stopPropagation());
+});
+function openInlinePicker(idx){
+    cpEditIdx=idx;
+    const hsv=hexToHSV(customColors[idx]);cpHue_=hsv.h;cpSat_=Math.round(hsv.s*100);cpVal_=Math.round(hsv.v*100);
+    document.getElementById('cpHueRange').value=cpHue_;
+    document.getElementById('cpSatRange').value=cpSat_;
+    document.getElementById('cpValRange').value=cpVal_;
+    document.getElementById('customPickerSide').classList.add('open');
+    cpUpdate();buildCustomStops();
+}
+function closeInlinePicker(){cpEditIdx=-1;document.getElementById('customPickerSide').classList.remove('open');buildCustomStops();}
+
+function buildCustomStops(){const container=document.getElementById('customStops');container.innerHTML='';const preview=document.getElementById('customPreview');preview.style.background=getCustomGradientCSS();
+    customColors.forEach((color,idx)=>{const row=document.createElement('div');row.className='custom-stop-row';
+        const swatch=document.createElement('div');swatch.className='custom-color-swatch'+(idx===cpEditIdx?' editing':'');swatch.style.background=color;
+        onTap(swatch,function(ev){ev.stopPropagation();openInlinePicker(idx);});
+        const label=document.createElement('span');label.className='custom-color-label';label.textContent=color.toUpperCase();
+        const remove=document.createElement('div');remove.className='custom-remove-btn';remove.textContent='×';
+        onTap(remove,function(e){e.stopPropagation();if(customColors.length<=2)return;customColors.splice(idx,1);if(cpEditIdx===idx)closeInlinePicker();else if(cpEditIdx>idx)cpEditIdx--;buildCustomStops();if(currentPalette==='custom')applyCustomPalette();});
+        row.appendChild(swatch);row.appendChild(label);if(customColors.length>2)row.appendChild(remove);container.appendChild(row);});}
 onTap(document.getElementById('customAddStop'),e=>{e.stopPropagation();if(customColors.length>=9)return;customColors.push(customColors[customColors.length-1]||'#ffffff');buildCustomStops();if(currentPalette==='custom')applyCustomPalette();});
-function buildPaletteList(){const list=document.getElementById('paletteList');list.innerHTML='';const ci=document.createElement('div');ci.className='palette-item'+(currentPalette==='custom'?' active':'');const cs=document.createElement('div');cs.className='palette-swatch';cs.style.background=getCustomGradientCSS();const cn=document.createElement('span');cn.className='palette-name';cn.textContent='✦ Свой вариант';ci.appendChild(cs);ci.appendChild(cn);onTap(ci,function(e){e.stopPropagation();applyCustomPalette();toggleCustomPanel();});list.appendChild(ci);Object.keys(palettes).forEach(key=>{const p=palettes[key];const item=document.createElement('div');item.className='palette-item'+(key===currentPalette?' active':'');const sw=document.createElement('div');sw.className='palette-swatch';sw.style.background=p.swatch;const nm=document.createElement('span');nm.className='palette-name';nm.textContent=p.name;item.appendChild(sw);item.appendChild(nm);onTap(item,function(e){e.stopPropagation();closeCustomPanel();if(transitionProgress>=1)currentStops=JSON.parse(JSON.stringify(currentStops));else currentStops=lerpStops(currentStops,targetStops,transitionProgress);targetStops=JSON.parse(JSON.stringify(palettes[key].stops));transitionProgress=0;currentPalette=key;buildPaletteList();});list.appendChild(item);});}
+// 🌿 тап за пределами — закрываем всё
+function closeCustomPanel(){customPanelOpen=false;cpEditIdx=-1;customPalettePanel.classList.remove('open');document.getElementById('customPickerSide').classList.remove('open');}
+
+// 🌿 Рандом палитра
+function randomPalette(){const count=3+Math.floor(Math.random()*5);const stops=[];const baseHue=Math.random()*360;
+    for(let i=0;i<count;i++){const t=i/(count-1);stops.push({pos:t,h:(baseHue+Math.random()*180)%360,s:0.4+Math.random()*0.5,v:0.3+Math.random()*0.7});}
+    if(transitionProgress>=1)currentStops=JSON.parse(JSON.stringify(currentStops));else currentStops=lerpStops(currentStops,targetStops,transitionProgress);targetStops=stops;transitionProgress=0;currentPalette='random';buildPaletteList();}
+
+// 🌿 Палитры — список с названиями, как было
+function buildPaletteList(){const list=document.getElementById('paletteList');list.innerHTML='';
+    // рандом
+    const randBtn=document.createElement('div');randBtn.className='palette-item';randBtn.innerHTML='<div class="palette-swatch" style="background:linear-gradient(to right,#888,#fff)"></div><span class="palette-name">🎲 Удиви меня</span>';
+    onTap(randBtn,function(e){e.stopPropagation();randomPalette();});list.appendChild(randBtn);
+    // своя палитра
+    const ci=document.createElement('div');ci.className='palette-item'+(currentPalette==='custom'?' active':'');
+    ci.innerHTML='<div class="palette-swatch" style="background:'+getCustomGradientCSS()+'"></div><span class="palette-name">✦ Свой вариант</span>';
+    onTap(ci,function(e){e.stopPropagation();applyCustomPalette();toggleCustomPanel();});list.appendChild(ci);
+    // все палитры
+    Object.keys(palettes).forEach(key=>{const p=palettes[key];
+        const item=document.createElement('div');item.className='palette-item'+(key===currentPalette?' active':'');
+        item.innerHTML='<div class="palette-swatch" style="background:'+p.swatch+'"></div><span class="palette-name">'+p.name+'</span>';
+        onTap(item,function(e){e.stopPropagation();closeCustomPanel();
+            if(transitionProgress>=1)currentStops=JSON.parse(JSON.stringify(currentStops));else currentStops=lerpStops(currentStops,targetStops,transitionProgress);
+            targetStops=JSON.parse(JSON.stringify(palettes[key].stops));transitionProgress=0;currentPalette=key;buildPaletteList();});
+        list.appendChild(item);});}
 buildPaletteList();
 
 // --- Музыка ---
@@ -971,7 +1022,7 @@ function init(){GAP=userGap;W=window.innerWidth;H=window.innerHeight;if(useWebGL
 
 
 let mouseDown=false,mousePos={x:0,y:0},touchPoints=[];
-function isUI(e){return e.target.closest('.anchor')||e.target.closest('.profile-panel')||e.target.closest('.toolbar')||e.target.closest('.side-panel')||e.target.closest('.custom-palette-panel')||e.target.closest('.beat-panel')||e.target.closest('.scene-bar');}
+function isUI(e){return e.target.closest('.anchor')||e.target.closest('.profile-panel')||e.target.closest('.toolbar')||e.target.closest('.side-panel')||e.target.closest('.custom-palette-panel')||e.target.closest('.beat-panel')||e.target.closest('.scene-bar')||e.target.closest('.bg-music-panel');}
 document.addEventListener('mousedown',e=>{if(isUI(e))return;if(e.button===0){mouseDown=true;mousePos={x:e.clientX,y:e.clientY};e.preventDefault();}});
 window.addEventListener('mousemove',e=>{if(isUI(e))return;mousePos={x:e.clientX,y:e.clientY};});
 window.addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;});
@@ -1251,12 +1302,73 @@ window.addEventListener('resize',()=>{cancelAnimationFrame(animFrame);init();if(
 const initNorm=normalizeStops(currentStops);for(let i=0;i<9;i++){shaderH[i]=initNorm[i].h;shaderS[i]=initNorm[i].s;shaderV[i]=initNorm[i].v;}
 if(useWebGL)initGPU();init();render();animFrame=requestAnimationFrame(loop);
 enhanceSliders();applyPlan();
+// 🎵 Встроенный плеер — музыка без визуализации, для всех тарифов
+const bgmTracks=[
+    {title:'Doing Damage',artist:'Dollshade',src:'music/bensound-doingdamage.mp3'},
+    {title:'Moonlight Dream',artist:'Yunior Arronte',src:'music/bensound-moonlightdream.mp3'},
+    {title:'On Repeat',artist:'Marcus P.',src:'music/bensound-onrepeat.mp3'},
+    {title:'Slow Life',artist:'Benjamin Lazzarus',src:'music/bensound-slowlife.mp3'},
+    {title:'Sunset Reverie',artist:'Tomas Novoa',src:'music/bensound-sunsetreverie.mp3'},
+    {title:'Encoded (2ACES Remix)',artist:'Hardwell',src:'music/hardwell-encoded-2aces-remix.mp3'},
+    {title:'Cloudy Groove',artist:'Lo Flow',src:'music/lo-flow-cloudy-groove.mp3'},
+    {title:'Such Great Heights',artist:'The Postal Service',src:'music/the-postal-service-such-great-heights.mp3'}
+];
+let bgmAudio=new Audio(),bgmIdx=0,bgmPlaying=false;
+bgmAudio.volume=0.6;
+
+function bgmBuildList(){
+    const list=document.getElementById('bgmTracklist');list.innerHTML='';
+    bgmTracks.forEach((tr,i)=>{
+        const el=document.createElement('div');el.className='bgm-track'+(i===bgmIdx?' active':'');
+        el.innerHTML='<span class="bgm-track-num">'+(i+1)+'</span><div class="bgm-track-info"><div class="bgm-track-t">'+tr.title+'</div><div class="bgm-track-a">'+tr.artist+'</div></div>';
+        onTap(el,e=>{e.stopPropagation();bgmIdx=i;bgmLoadAndPlay();});
+        list.appendChild(el);
+    });
+}
+function bgmLoadAndPlay(){
+    const tr=bgmTracks[bgmIdx];
+    bgmAudio.src=tr.src;bgmAudio.play().then(()=>{bgmPlaying=true;bgmUpdateUI();}).catch(()=>{});
+}
+function bgmUpdateUI(){
+    document.getElementById('bgmNowTitle').textContent=bgmTracks[bgmIdx].title;
+    document.getElementById('bgmNowArtist').textContent=bgmTracks[bgmIdx].artist;
+    document.getElementById('bgmPlayIcon').innerHTML=bgmPlaying?'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>':'<path d="M8 5v14l11-7z"/>';
+    document.getElementById('musicPulse').classList.toggle('on',bgmPlaying);
+    bgmBuildList();
+}
+// кнопка ♪ — открыть/закрыть панель
+onTap(document.getElementById('bgMusicToggle'),e=>{e.stopPropagation();
+    document.getElementById('bgMusicPanel').classList.toggle('open');bgmBuildList();});
+onTap(document.getElementById('bgmClose'),e=>{e.stopPropagation();
+    document.getElementById('bgMusicPanel').classList.remove('open');});
+// play/pause
+onTap(document.getElementById('bgmPlay'),e=>{e.stopPropagation();
+    if(!bgmAudio.src||bgmAudio.src===''){bgmLoadAndPlay();return;}
+    if(bgmPlaying){bgmAudio.pause();bgmPlaying=false;}else{bgmAudio.play();bgmPlaying=true;}bgmUpdateUI();});
+// prev/next
+onTap(document.getElementById('bgmPrev'),e=>{e.stopPropagation();bgmIdx=(bgmIdx-1+bgmTracks.length)%bgmTracks.length;bgmLoadAndPlay();});
+onTap(document.getElementById('bgmNext'),e=>{e.stopPropagation();bgmIdx=(bgmIdx+1)%bgmTracks.length;bgmLoadAndPlay();});
+// progress
+const bgmProg=document.getElementById('bgmProgress');
+bgmProg.addEventListener('input',e=>{e.stopPropagation();if(bgmAudio.duration)bgmAudio.currentTime=bgmAudio.duration*(bgmProg.value/100);});
+bgmProg.addEventListener('touchstart',e=>e.stopPropagation());
+bgmAudio.addEventListener('timeupdate',()=>{
+    if(bgmAudio.duration){bgmProg.value=(bgmAudio.currentTime/bgmAudio.duration)*100;
+    document.getElementById('bgmTimeCur').textContent=fmtTime(bgmAudio.currentTime);
+    document.getElementById('bgmTimeDur').textContent=fmtTime(bgmAudio.duration);}});
+bgmAudio.addEventListener('ended',()=>{bgmIdx=(bgmIdx+1)%bgmTracks.length;bgmLoadAndPlay();});
+// volume
+const bgmVolSl=document.getElementById('bgmVol');
+bgmVolSl.addEventListener('input',e=>{e.stopPropagation();bgmAudio.volume=bgmVolSl.value/100;});
+bgmVolSl.addEventListener('touchstart',e=>e.stopPropagation());
+// закрытие панели при тапе вне
+document.getElementById('bgMusicPanel').addEventListener('click',e=>e.stopPropagation());
+document.getElementById('bgMusicPanel').addEventListener('mousedown',e=>e.stopPropagation());
+document.getElementById('bgMusicPanel').addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
 // 🌿 тест тарифов
 document.querySelectorAll('#planBtns .sub-btn').forEach(btn=>{
     onTap(btn,function(e){e.stopPropagation();userPlan=btn.dataset.plan;
         document.querySelectorAll('#planBtns .sub-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyPlan();});
 });
-const dlcAudioTgl=document.getElementById('dlcAudioToggle');
-if(dlcAudioTgl)dlcAudioTgl.addEventListener('change',()=>{dlcAudio=dlcAudioTgl.checked;applyPlan();});
-const dlcBeatsTgl=document.getElementById('dlcBeatsToggle');
-if(dlcBeatsTgl)dlcBeatsTgl.addEventListener('change',()=>{dlcBeats=dlcBeatsTgl.checked;applyPlan();});
+onTap(document.getElementById('dlcAudioSwitch'),function(e){e.stopPropagation();dlcAudio=!dlcAudio;this.classList.toggle('on',dlcAudio);applyPlan();});
+onTap(document.getElementById('dlcBeatsSwitch'),function(e){e.stopPropagation();dlcBeats=!dlcBeats;this.classList.toggle('on',dlcBeats);applyPlan();});
