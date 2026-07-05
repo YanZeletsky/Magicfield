@@ -42,7 +42,8 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .anchor-profile { top:14px; right:14px; }
 .anchor-eye { top:14px; left:14px; }
 .anchor-zoom { bottom:14px; right:14px; display:none; }
-@media (hover:none) and (pointer:coarse) { .anchor-zoom.visible { display:flex; } }
+.anchor-rotate { bottom:14px; left:14px; display:none; }
+@media (hover:none) and (pointer:coarse) { .anchor-zoom.visible { display:flex; } .anchor-rotate.visible { display:flex; } }
 
 /* --- Профиль --- */
 .profile-panel { position:fixed; top:62px; right:16px; z-index:15; width:230px; background:rgba(8,8,16,0.92); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:18px; opacity:0; transform:translateY(-8px); transition:opacity .25s,transform .25s; pointer-events:none; }
@@ -284,6 +285,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .ui-hidden .custom-palette-panel,
 .ui-hidden .anchor-profile,
 .ui-hidden .anchor-zoom,
+.ui-hidden .anchor-rotate,
 .ui-hidden .anchor-music,
 .ui-hidden .profile-panel,
 .ui-hidden .bg-music-panel,
@@ -296,7 +298,6 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 /* 🌿 Замки и тарифы */
 .locked { opacity:0.3 !important; pointer-events:auto; }
 .mode-icon-item.locked { position:relative; }
-.lock-icon { position:absolute; right:3px; top:2px; font-size:8px; line-height:1; }
 .lock-toast { position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.88); color:rgba(255,255,255,0.8); padding:10px 22px; border-radius:12px; font-size:12px; z-index:999; pointer-events:none; opacity:0; transition:opacity .3s; backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.08); }
 .lock-toast.show { opacity:1; }
 .dlc-row { display:flex; align-items:center; justify-content:space-between; padding:8px 4px; }
@@ -352,40 +353,61 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .mode-icon-item:hover .mode-icon-label { color:rgba(255,255,255,0.5); }
 
 /* --- Мобильная адаптация --- */
+.mobile-drawer { display:none; }
+.mobile-grip-bar { display:none; }
+
 @media (max-width:768px) {
-    .scene-bar { top:8px; padding:3px; gap:3px; border-radius:12px; }
-    .scene-btn { width:44px; height:44px; border-radius:10px; }
-    .anchor-eye { top:8px; left:8px; width:52px; height:52px; border-radius:12px; }
-    .anchor-profile { top:8px; right:8px; width:52px; height:52px; border-radius:12px; }
-    .anchor-zoom { bottom:80px; right:12px; width:52px; height:52px; border-radius:12px; }
-    .anchor-music { bottom:80px; left:12px; width:52px; height:52px; border-radius:12px; }
-    /* тулбар внизу */
-    .toolbar {
-        left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;
-        transform:none !important;
-        flex-direction:row !important; justify-content:center;
-        border-radius:0 !important; border-top:1px solid rgba(255,255,255,0.08);
-        border-left:none !important; border-right:none !important; border-bottom:none !important;
-        padding:6px 12px !important; gap:2px !important;
-        width:100% !important;
-        padding-bottom:env(safe-area-inset-bottom,6px) !important;
+    .scene-bar { display:none !important; }
+    .anchor-eye { display:none !important; }
+    .anchor-profile { display:none !important; }
+    .anchor-music { display:none !important; }
+    .anchor-zoom { bottom:40px; right:12px; width:44px; height:44px; border-radius:10px; }
+    .anchor-rotate { bottom:40px; left:12px; width:44px; height:44px; border-radius:10px; }
+    .toolbar { display:none !important; }
+    /* 🌿 шторка — glassmorphism */
+    .mobile-drawer {
+        display:block; position:fixed; bottom:0; left:0; right:0; z-index:25;
+        background:rgba(10,10,16,0.95);
+        backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+        border-radius:16px 16px 0 0;
+        border-top:1px solid rgba(255,255,255,0.06);
+        transform:translateY(calc(100% - 24px));
+        transition:transform .35s cubic-bezier(.4,0,.2,1);
+        padding-bottom:env(safe-area-inset-bottom,0px);
     }
-    .tool-divider { width:1px !important; height:24px !important; margin:0 4px !important; }
-    .tool-icon { width:44px; height:44px; }
-    /* панель — bottom sheet */
+    .mobile-drawer.open { transform:translateY(0); }
+    .drawer-grip { display:flex; align-items:center; justify-content:center; height:24px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .grip-bar { width:32px; height:3px; border-radius:2px; background:rgba(255,255,255,0.18); }
+    .drawer-body { padding:2px 8px 8px; }
+    .drawer-layout { display:flex; gap:6px; }
+    .drawer-scenes { display:flex; flex-direction:column; gap:4px; flex-shrink:0; align-self:stretch; }
+    .drawer-scene { width:36px; flex:1; border-radius:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); color:rgba(255,255,255,0.3); font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .2s; }
+    .drawer-scene.active { background:rgba(123,44,191,0.2); border-color:rgba(123,44,191,0.3); color:rgba(255,255,255,0.85); }
+    .drawer-scene.locked { opacity:0.35; pointer-events:auto; }
+    .drawer-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; flex:1; }
+    .drawer-item { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 2px; border-radius:8px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); color:rgba(255,255,255,0.35); font-size:8px; cursor:pointer; transition:all .15s; -webkit-tap-highlight-color:transparent; }
+    .drawer-item:active { background:rgba(123,44,191,0.15); color:rgba(255,255,255,0.8); }
+    .drawer-item.locked { opacity:0.35; }
+    .drawer-item.locked:active { background:none !important; color:rgba(255,255,255,0.35) !important; }
+    .drawer-item svg { width:18px; height:18px; }
+    /* side-panel = half-sheet + grip */
     .side-panel {
-        left:0 !important; right:0 !important; bottom:56px !important; top:auto !important;
+        left:0 !important; right:0 !important; bottom:0 !important; top:auto !important;
         transform:translateY(100%) !important; width:100% !important; max-height:55vh !important;
         border-radius:16px 16px 0 0 !important;
         padding-bottom:env(safe-area-inset-bottom,8px) !important;
+        z-index:26 !important;
+        background:rgba(8,8,14,0.92) !important; backdrop-filter:blur(20px) !important;
     }
     .side-panel.open { transform:translateY(0) !important; }
-    /* профиль */
-    .profile-panel { top:auto; bottom:56px; right:8px; }
-    /* бит-панель */
-    .beat-panel { bottom:56px; padding-bottom:8px; }
-    /* кастом палитра */
-    .custom-palette-panel { left:8px; bottom:56px; top:auto; transform:none; flex-direction:column; }
+    .mobile-grip-bar { display:flex; align-items:center; justify-content:center; height:22px; cursor:pointer; }
+    .mobile-grip-bar .grip-bar { width:32px; height:3px; border-radius:2px; background:rgba(255,255,255,0.12); }
+    .sp-page { max-height:48vh; overflow-y:auto; }
+    .tool-divider { display:none; }
+    .profile-panel { top:auto !important; bottom:0 !important; right:0 !important; left:0 !important; width:100% !important; z-index:27 !important; border-radius:16px 16px 0 0; max-height:60vh; overflow-y:auto; padding-top:0 !important; }
+    .beat-panel { bottom:0; padding-bottom:env(safe-area-inset-bottom,8px); z-index:27; }
+    .bg-music-panel { z-index:27; }
+    .custom-palette-panel { left:0 !important; right:0 !important; bottom:0 !important; top:auto !important; transform:none !important; flex-direction:column; border-radius:16px 16px 0 0 !important; width:100% !important; z-index:28 !important; padding:14px !important; }
     .custom-picker-side.open { width:auto; border-left:none; border-top:1px solid rgba(255,255,255,0.06); }
 }
 @media (max-width:380px) {

@@ -130,7 +130,7 @@ function buildModeList(){
     modes.forEach(mode=>{
         const avail=isModeAvail(mode.key);
         const item=document.createElement('div');item.className='mode-icon-item'+(mode.key===currentMode?' active':'')+(!avail?' locked':'');
-        item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>'+(!avail?'<span class="lock-icon">🔒</span>':'');
+        item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>';
         onTap(item,function(e){e.stopPropagation();
             if(!avail){showLockToast('Доступно в Pro');return;}
             currentMode=mode.key;buildModeList();if(activeTool==='settings'){buildCurrentModeSettings();enhanceSliders();}});
@@ -290,6 +290,8 @@ document.querySelectorAll('.scene-btn').forEach(btn=>{
         // 🌿 лупа — только 3D + мобилка/планшет
         const zoomBtn=document.getElementById('zoomBtn3D');
         if(zoomBtn){if(currentScene==='3d')zoomBtn.classList.add('visible');else{zoomBtn.classList.remove('visible','active');zoomMode3D=false;}}
+        const rotBtn=document.getElementById('rotateBtn3D');
+        if(rotBtn){if(currentScene==='3d')rotBtn.classList.add('visible');else rotBtn.classList.remove('visible');}
         enhanceSliders();
         // скрыть старые секции
         const s1d=document.getElementById('shapeSection1D');if(s1d)s1d.style.display='none';
@@ -330,7 +332,7 @@ function buildModeList3D(){
         if(!all3D.includes(mode.key))return;
         const avail=isModeAvail(mode.key);
         const item=document.createElement('div');item.className='mode-icon-item'+(mode.key===testMode3D?' active':'')+(!avail?' locked':'');
-        item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>'+(!avail?'<span class="lock-icon">🔒</span>':'');
+        item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>';
         onTap(item,function(e){e.stopPropagation();
             if(!avail){showLockToast('Доступно в Pro');return;}
             testMode3D=mode.key;buildModeList3D();
@@ -1302,6 +1304,82 @@ window.addEventListener('resize',()=>{cancelAnimationFrame(animFrame);init();if(
 const initNorm=normalizeStops(currentStops);for(let i=0;i<9;i++){shaderH[i]=initNorm[i].h;shaderS[i]=initNorm[i].s;shaderV[i]=initNorm[i].v;}
 if(useWebGL)initGPU();init();render();animFrame=requestAnimationFrame(loop);
 enhanceSliders();applyPlan();
+// 🌿 Мобильная шторка
+const mDrawer=document.getElementById('mobileDrawer');
+const mGrip=document.getElementById('drawerGrip');
+const mGripClose=document.getElementById('mobileGripClose');
+if(mDrawer&&mGrip){
+    onTap(mGrip,function(e){e.stopPropagation();mDrawer.classList.toggle('open');});
+    // grip на side-panel → закрыть всё
+    if(mGripClose)onTap(mGripClose,function(e){e.stopPropagation();
+        sidePanel.classList.remove('open');activeTool=null;
+        toolIcons.forEach(function(t){t.classList.remove('active');});
+        document.getElementById('profilePanel').classList.remove('open');
+        document.getElementById('bgMusicPanel').classList.remove('open');
+        if(typeof closeCustomPanel==='function')closeCustomPanel();
+        mDrawer.classList.add('open');
+    });
+    // grip профиля
+    const pGrip=document.getElementById('profileGripClose');
+    if(pGrip)onTap(pGrip,function(e){e.stopPropagation();
+        document.getElementById('profilePanel').classList.remove('open');
+        mDrawer.classList.add('open');
+    });
+    // 2D/3D переключатели в шторке
+    document.querySelectorAll('.drawer-scene').forEach(btn=>{
+        onTap(btn,function(e){e.stopPropagation();
+            if(btn.classList.contains('locked')){showLockToast('Доступно в Pro');return;}
+            const sc=btn.dataset.dscene;
+            document.querySelectorAll('.drawer-scene').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+            // синхронизируем с scene-bar
+            const sceneBtn=document.querySelector('.scene-btn[data-scene="'+sc+'"]');
+            if(sceneBtn)sceneBtn.click();
+        });
+    });
+    // иконки шторки
+    document.querySelectorAll('.drawer-item').forEach(item=>{
+        onTap(item,function(e){e.stopPropagation();
+            const tool=item.dataset.dtool;
+            if(item.classList.contains('locked')){
+                const msg=tool==='music'?'Доступно в DLC Аудио':tool==='create'?'Доступно в DLC Биты':'Доступно в Pro';
+                showLockToast(msg);return;
+            }
+            mDrawer.classList.remove('open');
+            if(tool==='profile'){document.getElementById('profilePanel').classList.toggle('open');return;}
+            if(tool==='bgmusic'){document.getElementById('bgMusicPanel').classList.toggle('open');bgmBuildList();return;}
+            switchTool(tool);
+        });
+    });
+    // закрытие
+    function closeAllMobilePanels(){
+        sidePanel.classList.remove('open');activeTool=null;
+        toolIcons.forEach(t=>t.classList.remove('active'));
+        document.getElementById('profilePanel').classList.remove('open');
+        document.getElementById('bgMusicPanel').classList.remove('open');
+        if(typeof closeCustomPanel==='function')closeCustomPanel();
+        mDrawer.classList.remove('open');
+    }
+    document.addEventListener('touchstart',function(e){if(!isUI(e))closeAllMobilePanels();},{passive:true});
+    // isUI
+    const origIsUI2=isUI;
+    isUI=function(e){return origIsUI2(e)||e.target.closest('.mobile-drawer');};
+    // 🔍 зум-кнопка через onTap
+    const zoomBtnEl=document.getElementById('zoomBtn3D');
+    if(zoomBtnEl)onTap(zoomBtnEl,function(e){e.stopPropagation();if(typeof toggleZoom3D==='function')toggleZoom3D();});
+    // locked-состояние при смене тарифа
+    const origApplyPlan=applyPlan;
+    applyPlan=function(){origApplyPlan();
+        document.querySelectorAll('.drawer-item').forEach(item=>{
+            const t=item.dataset.dtool;
+            if(t==='music')item.classList.toggle('locked',!dlcAudio);
+            if(t==='create')item.classList.toggle('locked',!dlcBeats);
+        });
+        document.querySelectorAll('.drawer-scene').forEach(btn=>{
+            btn.classList.toggle('locked',btn.dataset.dscene==='3d'&&userPlan==='free');
+        });
+    };
+    applyPlan(); // 🌿 применяем locked-состояние к шторке при старте
+}
 // 🎵 Встроенный плеер — музыка без визуализации, для всех тарифов
 const bgmTracks=[
     {title:'Doing Damage',artist:'Dollshade',src:'music/bensound-doingdamage.mp3'},
@@ -1370,5 +1448,6 @@ document.querySelectorAll('#planBtns .sub-btn').forEach(btn=>{
     onTap(btn,function(e){e.stopPropagation();userPlan=btn.dataset.plan;
         document.querySelectorAll('#planBtns .sub-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyPlan();});
 });
-onTap(document.getElementById('dlcAudioSwitch'),function(e){e.stopPropagation();dlcAudio=!dlcAudio;this.classList.toggle('on',dlcAudio);applyPlan();});
-onTap(document.getElementById('dlcBeatsSwitch'),function(e){e.stopPropagation();dlcBeats=!dlcBeats;this.classList.toggle('on',dlcBeats);applyPlan();});
+const dlcAS=document.getElementById('dlcAudioSwitch'),dlcBS=document.getElementById('dlcBeatsSwitch');
+if(dlcAS)onTap(dlcAS,function(e){e.stopPropagation();dlcAudio=!dlcAudio;dlcAS.classList.toggle('on',dlcAudio);applyPlan();});
+if(dlcBS)onTap(dlcBS,function(e){e.stopPropagation();dlcBeats=!dlcBeats;dlcBS.classList.toggle('on',dlcBeats);applyPlan();});

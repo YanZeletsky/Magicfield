@@ -40,12 +40,17 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M2.55 13.406c-.272-.373-.408-.56-.502-.92a2.5 2.5 0 0 1 0-.971c.094-.361.23-.548.502-.92C4.039 8.55 7.303 5 12 5s7.961 3.55 9.45 5.594c.272.373.408.56.502.92a2.5 2.5 0 0 1 0 .971c-.094.361-.23.548-.502.92C19.961 15.45 16.697 19 12 19s-7.961-3.55-9.45-5.594"/><path d="M12 14a2 2 0 1 0 0-4a2 2 0 0 0 0 4"/></g></svg>
     </button>
     <!-- 🔍 Лупа-зум (3D мобилка) -->
-    <button class="anchor anchor-zoom" id="zoomBtn3D" onclick="toggleZoom3D()">
+    <button class="anchor anchor-zoom" id="zoomBtn3D">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="M21 21l-4.35-4.35"/></svg>
+    </button>
+    <!-- 🔄 Вращение камеры (3D мобилка) -->
+    <button class="anchor anchor-rotate" id="rotateBtn3D">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>
     </button>
 
     <!-- Профиль панель -->
     <aside class="profile-panel" id="profilePanel">
+        <div class="mobile-grip-bar" id="profileGripClose"><div class="grip-bar"></div></div>
         <div class="panel-title">Профиль</div>
         <div class="profile-section"><div class="profile-avatar">S</div><div class="profile-info"><div class="profile-name">Soundfield User</div><div class="profile-email">user@soundfield.app</div></div></div>
         <div class="profile-tier"><div class="tier-badge">Touch</div><span class="tier-label">Бесплатный тариф</span></div>
@@ -90,6 +95,42 @@
         </div>
     </div>
 
+    <!-- 🌿 Мобильная шторка -->
+    <div class="mobile-drawer" id="mobileDrawer">
+        <div class="drawer-grip" id="drawerGrip"><div class="grip-bar"></div></div>
+        <div class="drawer-body">
+            <div class="drawer-layout">
+                <!-- 2D/3D переключатели — вертикально слева -->
+                <div class="drawer-scenes">
+                    <div class="drawer-scene active" data-dscene="2d"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="3" y1="12" x2="21" y2="12" opacity=".3"/><line x1="12" y1="3" x2="12" y2="21" opacity=".3"/></svg></div>
+                    <div class="drawer-scene" data-dscene="3d"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l8 4.5v11L12 22l-8-4.5v-11z"/><path d="M12 12l8-4.5M12 12v10M12 12L4 7.5" opacity=".3"/></svg></div>
+                </div>
+                <!-- Основная сетка -->
+                <div class="drawer-grid" id="drawerGrid">
+                    <div class="drawer-item" data-dtool="modes"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="20" height="20"><path fill="currentColor" d="M12.772 2.994c1.662-.018 3.835-.042 5.663.158c1.018.111 1.86.285 2.427.533c.592.258.638.473.638.565c0 .137-.05.301-.41.501c-.384.214-.997.386-1.838.507c-1.669.24-3.92.242-6.252.242h-.045c-2.279 0-4.633 0-6.421.258c-.894.129-1.726.332-2.353.68C3.528 6.802 3 7.389 3 8.25c0 .659.339 1.164.757 1.518c.407.345.929.585 1.442.756c1.032.344 2.24.476 3.05.476H9V9.5h-.75c-.69 0-1.731-.117-2.575-.399c-.424-.141-.746-.307-.948-.478c-.191-.162-.227-.281-.227-.373c0-.137.05-.3.41-.5c.384-.214.998-.386 1.838-.507C8.417 7.002 10.668 7 13 7h.045c2.279 0 4.634 0 6.421-.257c.894-.13 1.726-.332 2.354-.681c.652-.363 1.18-.949 1.18-1.812c0-1.017-.782-1.61-1.538-1.94c-.78-.34-1.805-.534-2.865-.65c-1.924-.21-4.19-.184-5.839-.166l-.515.006a.75.75 0 1 0 .014 1.5zM13.75 8A2.75 2.75 0 0 0 11 10.75v5.337c-1.276-.471-2.382-.479-3.297-.131c-1.16.44-1.86 1.391-2.165 2.307a.75.75 0 0 0 .346.892l4.555 2.551a6.25 6.25 0 0 1 2.373 2.352l.353.618a2.75 2.75 0 0 0 2.813 1.353l2.781-.435a2.75 2.75 0 0 0 2.264-2.138l1.029-4.772a3.75 3.75 0 0 0-3.153-4.506l-2.399-.331v-3.096A2.75 2.75 0 0 0 13.75 8m-1.25 2.75a1.25 1.25 0 1 1 2.5 0v3.75a.75.75 0 0 0 .647.743l3.047.421a2.25 2.25 0 0 1 1.891 2.703l-1.029 4.773a1.25 1.25 0 0 1-1.029.972l-2.781.435a1.25 1.25 0 0 1-1.279-.615l-.353-.618a7.75 7.75 0 0 0-2.942-2.917l-3.947-2.21c.233-.359.57-.662 1.01-.829c.642-.244 1.66-.255 3.16.553a.75.75 0 0 0 1.105-.66z"/></svg></div>
+                    <div class="drawer-item" data-dtool="palette"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 22q-2.05 0-3.875-.788t-3.187-2.15t-2.15-3.187T2 12q0-2.075.813-3.9t2.2-3.175T8.25 2.788T12.2 2q2 0 3.775.688t3.113 1.9t2.125 2.875T22 11.05q0 2.875-1.75 4.413T16 17h-1.85q-.225 0-.312.125t-.088.275q0 .3.375.863t.375 1.287q0 1.25-.687 1.85T12 22m-4.425-9.425Q8 12.15 8 11.5t-.425-1.075T6.5 10t-1.075.425T5 11.5t.425 1.075T6.5 13t1.075-.425m3-4Q11 8.15 11 7.5t-.425-1.075T9.5 6t-1.075.425T8 7.5t.425 1.075T9.5 9t1.075-.425m5 0Q16 8.15 16 7.5t-.425-1.075T14.5 6t-1.075.425T13 7.5t.425 1.075T14.5 9t1.075-.425m3 4Q19 12.15 19 11.5t-.425-1.075T17.5 10t-1.075.425T16 11.5t.425 1.075T17.5 13t1.075-.425M12 20q.225 0 .363-.125t.137-.325q0-.35-.375-.825T11.75 17.3q0-1.05.725-1.675T14.25 15H16q1.65 0 2.825-.962T20 11.05q0-3.025-2.312-5.038T12.2 4Q8.8 4 6.4 6.325T4 12q0 3.325 2.338 5.663T12 20"/></svg></div>
+                    <div class="drawer-item" data-dtool="settings">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" y1="8" x2="20" y2="8"/><circle cx="10" cy="8" r="2.5" fill="currentColor" stroke="none"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="15" cy="16" r="2.5" fill="currentColor" stroke="none"/></svg>
+                        
+                    </div>
+                    <div class="drawer-item" data-dtool="bgmusic">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                        
+                    </div>
+                    <div class="drawer-item" data-dtool="music"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M5.98 21.5q1.34 0 2.23-.756q.892-.755 1.398-2.14q.386-1.096.87-1.702t1.845-1.686q1.512-1.212 2.335-2.72T15.48 9q0-2.783-1.859-4.641T8.981 2.5q-2.667 0-4.488 1.695T2.52 8.5h1q.154-2.183 1.707-3.591T8.981 3.5q2.317 0 3.909 1.591Q14.48 6.683 14.48 9q0 1.777-.8 3.16q-.8 1.382-2.068 2.351q-1.185.893-1.824 1.687t-1.084 1.96q-.427 1.119-1.04 1.73t-1.683.612q-.883 0-1.566-.568q-.684-.568-.857-1.432H2.519q.173 1.285 1.147 2.142q.972.858 2.315.858m4.506-10.997q.61-.612.61-1.503q0-.896-.61-1.506t-1.506-.61t-1.506.61T6.865 9q0 .89.61 1.503t1.506.613t1.506-.613m7.917 3.33l-.764-.744q.398-.945.62-1.957q.22-1.013.22-2.113q0-1.08-.21-2.09q-.212-1.01-.61-1.954l.763-.764q.514 1.091.786 2.296T19.48 9q0 1.314-.282 2.518t-.795 2.315m2.944 2.9l-.725-.72q.898-1.538 1.378-3.297t.48-3.666q0-1.93-.49-3.684q-.489-1.752-1.393-3.31l.73-.731q1.034 1.685 1.593 3.64q.56 1.954.56 4.074t-.56 4.064t-1.573 3.63"/></svg></div>
+                    <div class="drawer-item" data-dtool="create">
+                        <svg viewBox="0 0 48 48" width="20" height="20"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 14v-2a6 6 0 0 1 6-6h24a6 6 0 0 1 6 6v2m-10 4v12m8-10v8M24 15v18m-8-15v12M8 20v8m-2 6v2a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-2"/></svg>
+                        
+                    </div>
+                    <div class="drawer-item" data-dtool="profile">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></svg>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Левая панель инструментов (GoPaint стиль) -->
     <div class="toolbar" id="toolbar">
         <button class="tool-icon" data-tool="modes" id="toolModes">
@@ -112,6 +153,7 @@
 
     <!-- Контентная панель (выезжает справа от тулбара) -->
     <div class="side-panel" id="sidePanel">
+        <div class="mobile-grip-bar" id="mobileGripClose"><div class="grip-bar"></div></div>
         <!-- Режимы -->
         <div class="sp-page" id="spModes">
             <div id="modes2D">

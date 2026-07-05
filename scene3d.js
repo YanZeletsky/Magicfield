@@ -213,16 +213,17 @@ function init3DScene(){
             if(cursorEl){cursorEl.style.left=e.clientX+'px';cursorEl.style.top=e.clientY+'px';}}
     },true);
     // 🌿 touch — и вращение (OrbitControls через pointer events), и частицы
-    cv.addEventListener('touchstart',e=>{
-        e.stopPropagation();
-        if(!zoomMode3D){touchPoints=[];for(let i=0;i<e.touches.length;i++)touchPoints.push({x:e.touches[i].clientX,y:e.touches[i].clientY});}
-    },{passive:true,capture:true});
-    cv.addEventListener('touchmove',e=>{
-        e.stopPropagation();
-        if(!zoomMode3D){touchPoints=[];for(let i=0;i<e.touches.length;i++)touchPoints.push({x:e.touches[i].clientX,y:e.touches[i].clientY});}
-    },{passive:true,capture:true});
-    cv.addEventListener('touchend',e=>{e.stopPropagation();touchPoints=[];},{passive:true,capture:true});
+    cv.addEventListener('touchstart',function(e){
+        e.preventDefault();e.stopPropagation();
+        if(!zoomMode3D){touchPoints=[];for(var i=0;i<e.touches.length;i++)touchPoints.push({x:e.touches[i].clientX,y:e.touches[i].clientY});}
+    },{passive:false,capture:true});
+    cv.addEventListener('touchmove',function(e){
+        e.preventDefault();e.stopPropagation();
+        if(!zoomMode3D){touchPoints=[];for(var i=0;i<e.touches.length;i++)touchPoints.push({x:e.touches[i].clientX,y:e.touches[i].clientY});}
+    },{passive:false,capture:true});
+    cv.addEventListener('touchend',function(e){e.preventDefault();e.stopPropagation();touchPoints=[];},{passive:false,capture:true});
     threeReady=true;
+    initRotateButton();
 }
 // 🌿 лупа — переключает тач между обычным режимом и зумом
 function toggleZoom3D(){
@@ -232,6 +233,36 @@ function toggleZoom3D(){
     if(zoomMode3D)touchPoints=[];
     const btn=document.getElementById('zoomBtn3D');
     if(btn)btn.classList.toggle('active',zoomMode3D);
+}
+// 🔄 ручное вращение камеры через кнопку (мобилка)
+let rotateDrag3D=false,rotLastX3D=0,rotLastY3D=0;
+function initRotateButton(){
+    const btn=document.getElementById('rotateBtn3D');
+    if(!btn)return;
+    btn.addEventListener('touchstart',function(e){
+        e.preventDefault();e.stopPropagation();
+        rotateDrag3D=true;rotLastX3D=e.touches[0].clientX;rotLastY3D=e.touches[0].clientY;
+    },{passive:false});
+    document.addEventListener('touchmove',function(e){
+        if(!rotateDrag3D||!threeReady||!camera3D||!controls3D)return;
+        const tx=e.touches[0].clientX,ty=e.touches[0].clientY;
+        const dx=tx-rotLastX3D,dy=ty-rotLastY3D;
+        rotLastX3D=tx;rotLastY3D=ty;
+        // 🌿 сферические координаты — камера вращается вокруг центра
+        const offset=camera3D.position.clone().sub(controls3D.target);
+        const r=offset.length();
+        let theta=Math.atan2(offset.x,offset.z);
+        let phi=Math.acos(Math.max(-1,Math.min(1,offset.y/r)));
+        theta-=dx*0.008;
+        phi=Math.max(0.15,Math.min(Math.PI-0.15,phi+dy*0.008));
+        offset.x=r*Math.sin(phi)*Math.sin(theta);
+        offset.y=r*Math.cos(phi);
+        offset.z=r*Math.sin(phi)*Math.cos(theta);
+        camera3D.position.copy(controls3D.target).add(offset);
+        camera3D.lookAt(controls3D.target);
+    },{passive:true});
+    document.addEventListener('touchend',function(){rotateDrag3D=false;});
+    document.addEventListener('touchcancel',function(){rotateDrag3D=false;});
 }
 function update3DColors(){
     if(!colors3D||!homePositions3D)return;
