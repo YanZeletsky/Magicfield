@@ -25,7 +25,7 @@ function enhanceSliders(root){
     });
 }
 const cursorEl=document.getElementById('cursor');
-if(window.matchMedia('(hover:hover) and (pointer:fine)').matches){document.addEventListener('mousemove',e=>{cursorEl.style.left=e.clientX+'px';cursorEl.style.top=e.clientY+'px';});document.addEventListener('mousedown',()=>cursorEl.classList.add('active'));document.addEventListener('mouseup',()=>cursorEl.classList.remove('active'));}
+if(window.matchMedia('(hover:hover) and (pointer:fine)').matches){document.addEventListener('mousemove',e=>{cursorEl.style.left=e.clientX+'px';cursorEl.style.top=e.clientY+'px';const overUI=e.target.closest('.toolbar,.side-panel,.profile-panel,.scene-bar,.beat-panel,.bg-music-panel,.mobile-drawer,.custom-palette-panel,.anchor,.lab-overlay');cursorEl.style.opacity=overUI?'0':'1';});document.addEventListener('mousedown',()=>cursorEl.classList.add('active'));document.addEventListener('mouseup',()=>cursorEl.classList.remove('active'));}
 function onTap(el,fn){el.addEventListener('click',fn);el.addEventListener('touchend',function(e){e.preventDefault();e.stopPropagation();fn(e);},{passive:false});}
 
 // --- Якоря ---
@@ -78,9 +78,9 @@ document.addEventListener('click',e=>{
 
 // --- Режимы ---
 // 🌿 Тарифы — корни доступа
-let userPlan='free'; // 'free' | 'pro'
+let userPlan='pro'; // 'free' | 'pro'
 let dlcAudio=false, dlcBeats=false;
-const freeModes=['vortex','mandala'];
+const freeModes=['custom','vortex','mandala','turbulence','wave','breathing','fibonacci'];
 
 function showLockToast(msg){
     let t=document.getElementById('lockToast');
@@ -123,27 +123,30 @@ function applyPlan(){
 let currentMode='vortex';
 let canvasShape=0;
 let currentScene='2d',currentModeTab='manual';
-const musicParamDefs=[{key:'reactivity',label:'Реактивность',min:.2,max:3,step:.1},{key:'bassStyle',label:'Бас',min:0,max:2,step:1,labels:['Пульс','Притяж.','Отталк.']},{key:'dynamics',label:'Динамика',min:.2,max:3,step:.1},{key:'vortex',label:'Вихрь',min:0,max:3,step:.1}];
+const musicParamDefs=[{key:'pulse',label:'Пульс',min:0,max:3,step:.1},{key:'beat',label:'Удар',min:0,max:3,step:.1},{key:'spin',label:'Вращение',min:0,max:3,step:.1},{key:'shimmer',label:'Мерцание',min:0,max:3,step:.1}];
 
+const only3DModes=['blackhole','neural','crystal','meteor','nebula'];
 function buildModeList(){
     const list=document.getElementById('modesList');list.innerHTML='';list.className='modes-icon-grid';
     modes.forEach(mode=>{
+        if(currentScene!=='3d'&&only3DModes.includes(mode.key))return; // 🌿 3D-only не видны в 2D
         const avail=isModeAvail(mode.key);
         const item=document.createElement('div');item.className='mode-icon-item'+(mode.key===currentMode?' active':'')+(!avail?' locked':'');
         item.innerHTML=(modeIcons[mode.key]||'')+'<span class="mode-icon-label">'+mode.name+'</span>';
         onTap(item,function(e){e.stopPropagation();
             if(!avail){showLockToast('Доступно в Pro');return;}
-            currentMode=mode.key;buildModeList();if(activeTool==='settings'){buildCurrentModeSettings();enhanceSliders();}});
+            currentMode=mode.key;buildModeList();haptic();if(activeTool==='settings'){buildCurrentModeSettings();enhanceSliders();}});
         list.appendChild(item);
     });
 }
+
 
 function buildCurrentModeSettings(){
     const container=document.getElementById('modeSettings');container.innerHTML='';
     const label=document.getElementById('modeSettingsLabel');
     const modeName=modes.find(m=>m.key===currentMode)?.name||currentMode;
     label.textContent=modeName;label.style.display='block';
-    const defs=modeParamDefs[currentMode];if(!defs)return;
+        const defs=modeParamDefs[currentMode];if(!defs)return;
     defs.forEach(def=>{
         if(def.type==='buttons'){
             const wrap=document.createElement('div');wrap.className='sub-modes';
@@ -169,6 +172,19 @@ function buildCurrentModeSettings(){
 
 function buildMusicParams(){
     const container=document.getElementById('musicParamsContainer');container.innerHTML='';
+    // 🌿 Полотно + Классика — два способа увидеть звук
+    const cvRow=document.createElement('div');cvRow.className='sub-modes';
+    const cvBtn=document.createElement('div');cvBtn.className='sub-btn'+(canvasVisOn?' active':'');cvBtn.textContent='Полотно';
+    onTap(cvBtn,e=>{e.stopPropagation();canvasVisOn=!canvasVisOn;cvBtn.classList.toggle('active',canvasVisOn);
+        if(canvasVisOn&&classicVisOn){classicVisOn=false;clBtn.classList.remove('active');document.getElementById('classicAnalyzer').classList.remove('on');}});
+    const clBtn=document.createElement('div');clBtn.className='sub-btn'+(classicVisOn?' active':'');clBtn.textContent='Классика';
+    onTap(clBtn,e=>{e.stopPropagation();classicVisOn=!classicVisOn;clBtn.classList.toggle('active',classicVisOn);
+        document.getElementById('classicAnalyzer').classList.toggle('on',classicVisOn);
+        if(classicVisOn&&canvasVisOn){canvasVisOn=false;cvBtn.classList.remove('active');}});
+    cvRow.appendChild(cvBtn);cvRow.appendChild(clBtn);
+    const bpmInfo=document.createElement('span');bpmInfo.id='canvasBpmInfo';bpmInfo.style.cssText='font-size:10px;color:rgba(255,255,255,0.35);align-self:center;padding-left:10px;';
+    bpmInfo.textContent=trackPassport.ready&&trackPassport.bpm?('♩ '+trackPassport.bpm+' BPM'):'';
+    cvRow.appendChild(bpmInfo);container.appendChild(cvRow);
     musicParamDefs.forEach(def=>{
         const row=document.createElement('div');row.className='ctrl-row';
         const lb=document.createElement('span');lb.className='ctrl-label';lb.textContent=def.label;
@@ -205,7 +221,7 @@ function buildBeatGrid(){
             const step=document.createElement('div');
             step.className='beat-step '+track.color+(beatPattern[track.key][i]?' on':'');
             if(beatPlaying&&i===beatStep)step.classList.add('current');
-            onTap(step,function(e){e.stopPropagation();beatPattern[track.key][i]=!beatPattern[track.key][i];step.classList.toggle('on');});
+            onTap(step,function(e){e.stopPropagation();beatPattern[track.key][i]=!beatPattern[track.key][i];step.classList.toggle('on');haptic();});
             steps.appendChild(step);rowEls.push(step);
         }
         beatStepEls.push(rowEls);
@@ -264,7 +280,7 @@ beatVolSlider.addEventListener('input',e=>{e.stopPropagation();beatVol=+beatVolS
 beatVolSlider.addEventListener('touchstart',e=>e.stopPropagation());
 
 // --- Настройки ---
-let dimension=0; // 0=2D, 1=3D, 2=4D
+let dimension=0; // 0=2D, 1=3D
 let mode1D=false;
 let capture1DShape=0,capture1DLayers=0,capture1DGap=8;
 let deformSub=0,deformAmp=0.3,deformFreq=3,deformRad=0.36,deformRot=0.5,deformTilt=0.35;
@@ -275,7 +291,7 @@ let deformSub=0,deformAmp=0.3,deformFreq=3,deformRad=0.36,deformRot=0.5,deformTi
 document.querySelectorAll('.scene-btn').forEach(btn=>{
     onTap(btn,function(e){e.stopPropagation();
         if(btn.classList.contains('locked')){showLockToast('3D доступен в Pro');return;}
-        currentScene=btn.dataset.scene;
+        currentScene=btn.dataset.scene;haptic();
         document.querySelectorAll('.scene-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
         // показать/скрыть секции в режимах
         document.getElementById('modes2D').style.display=(currentScene==='2d'||currentScene==='4d')?'':'none';
@@ -286,7 +302,7 @@ document.querySelectorAll('.scene-btn').forEach(btn=>{
         const sc=document.getElementById('settingsCommon');if(sc)sc.style.display=(currentScene==='2d'||currentScene==='4d')?'':'none';
         const s3d=document.getElementById('shapeSectionTest');if(s3d)s3d.style.display=currentScene==='3d'?'':'none';
         const sb=document.getElementById('shapeSectionBeta');if(sb)sb.style.display=currentScene==='visual'?'':'none';
-        const s4dt=document.getElementById('shapeSection4DTime');if(s4dt)s4dt.style.display=currentScene==='4d'?'':'none';
+        
         // 🌿 лупа — только 3D + мобилка/планшет
         const zoomBtn=document.getElementById('zoomBtn3D');
         if(zoomBtn){if(currentScene==='3d')zoomBtn.classList.add('visible');else{zoomBtn.classList.remove('visible','active');zoomMode3D=false;}}
@@ -304,22 +320,28 @@ document.querySelectorAll('.scene-btn').forEach(btn=>{
         }else if(currentScene==='3d'){
             dimension=3;mode1D=false;trailMode=false;switchToTest();
         }else if(currentScene==='4d'){
-            dimension=0;mode1D=false;trailMode=true;switchFromTest();
+            dimension=0;mode1D=false;trailMode=false;switchFromTest();
             for(let i=0;i<TOTAL;i++){velX[i]=0;velY[i]=0;}
         }else if(currentScene==='visual'){
-            dimension=4;mode1D=false;trailMode=false;switchFromTest();initBetaVisual();
+            dimension=4;mode1D=false;trailMode=false;switchFromTest();/*archived: initBetaVisual()*/
         }
-        const wc=document.getElementById('wireCanvas');
-        if(wc)wc.style.display=(currentScene==='2d'&&barrierShape>0)?'block':'none';
-        // показать/скрыть glCanvas vs threeCanvas
+        const wc=null/*archived*/;
+        if(wc)if(wc){wc.style.display=(currentScene==='2d'&&barrierShape>0)?'block':'none';}
+        // показать/скрыть glCanvas vs threeCanvas — crossfade
         if(currentScene==='3d'){
-            document.getElementById('glCanvas').classList.add('hidden');
-            document.getElementById('threeCanvas').classList.remove('hidden');
-            document.getElementById('threeCanvas').style.display='block';
+            const glC=document.getElementById('glCanvas');
+            const thC=document.getElementById('threeCanvas');
+            thC.classList.remove('hidden');thC.style.display='block';thC.style.opacity='0';
+            requestAnimationFrame(()=>{thC.style.transition='opacity .35s';thC.style.opacity='1';});
+            glC.style.transition='opacity .35s';glC.style.opacity='0';
+            setTimeout(()=>{glC.classList.add('hidden');glC.style.opacity='';glC.style.transition='';},350);
         }else{
-            document.getElementById('threeCanvas').classList.add('hidden');
-            document.getElementById('threeCanvas').style.display='none';
-            document.getElementById('glCanvas').classList.remove('hidden');
+            const glC=document.getElementById('glCanvas');
+            const thC=document.getElementById('threeCanvas');
+            glC.classList.remove('hidden');glC.style.opacity='0';
+            requestAnimationFrame(()=>{glC.style.transition='opacity .35s';glC.style.opacity='1';});
+            thC.style.transition='opacity .35s';thC.style.opacity='0';
+            setTimeout(()=>{thC.classList.add('hidden');thC.style.display='none';thC.style.opacity='';thC.style.transition='';glC.style.transition='';},350);
         }
     });
 });
@@ -384,7 +406,7 @@ document.querySelectorAll('#betaPatternBtns2 .sub-btn').forEach(btn=>{
 document.querySelectorAll('#dimensionBtns .sub-btn').forEach(btn=>{
     onTap(btn,function(e){e.stopPropagation();
         const dim=btn.dataset.dim;
-        mode1D=dim==='1d';
+        
         if(dim==='2d')dimension=0;else if(dim==='3d')dimension=1;else if(dim==='4d')dimension=2;else if(dim==='test')dimension=3;else if(dim==='beta')dimension=4;else dimension=0;
         document.querySelectorAll('#dimensionBtns .sub-btn').forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
@@ -393,13 +415,13 @@ document.querySelectorAll('#dimensionBtns .sub-btn').forEach(btn=>{
         document.getElementById('shapeSection3D').style.display=dimension===1?'':'none';
         document.getElementById('shapeSection4D').style.display=dimension===2?'':'none';
         document.getElementById('shapeSectionTest').style.display=dimension===3?'':'none';
-        document.getElementById('shapeSectionBeta').style.display=dimension===4?'':'none';
+        /*archived*/
         document.getElementById('settingsCommon').style.display=(!mode1D&&dimension===0)?'':'none';
-        const wc=document.getElementById('wireCanvas');
-        wc.style.display=(mode1D||dimension===2||(barrierShape>0&&dimension===0))?'block':'none';
-        if(wc&&wireCtx){wc.width=W;wc.height=H;}
+        const wc=null/*archived*/;
+        if(wc){wc.style.display=(mode1D||dimension===2||(barrierShape>0&&dimension===0))?'block':'none';}
+        if(wc){wc.width=W;wc.height=H;}
         for(let i=0;i<TOTAL;i++){velX[i]=0;velY[i]=0;}
-        if(dimension===3)switchToTest();else if(dimension===4){switchFromTest();initBetaVisual();}else{switchFromTest();if(dimension===2)init4D();}
+        if(dimension===3)switchToTest();else if(dimension===4){switchFromTest();/*archived: initBetaVisual()*/}else{switchFromTest();if(dimension===2)init4D();}
     });
 });
 // 1D захват
@@ -408,9 +430,9 @@ document.querySelectorAll('#capture1DBtns .sub-btn').forEach(btn=>{
         document.querySelectorAll('#capture1DBtns .sub-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
         document.getElementById('capture1DSlider').parentElement.style.display=capture1DShape>0?'flex':'none';
         if(capture1DShape>0&&capture1DLayers<1){capture1DLayers=1;document.getElementById('capture1DSlider').value=1;document.getElementById('capture1DVal').textContent='1';}
-        const wc=document.getElementById('wireCanvas');
-        if(capture1DShape>0&&mode1D){wc.style.display='block';if(wireCtx){wc.width=W;wc.height=H;}}
-        else if(mode1D){wc.style.display='none';if(wireCtx)wireCtx.clearRect(0,0,W,H);}
+        const wc=null/*archived*/;
+        if(capture1DShape>0&&mode1D){if(wc){wc.style.display='block';}if(wireCtx){if(wc){wc.width=W;wc.height=H;}}}
+        else if(mode1D){if(wc){wc.style.display='none';}if(typeof wireCtx!=='undefined'&&wireCtx)wireCtx.clearRect(0,0,W,H);}
     });
 });
 const c1dSl=document.getElementById('capture1DSlider'),c1dVal=document.getElementById('capture1DVal');
@@ -467,23 +489,6 @@ function applyCapture1D(idx){
         if(innerR>0){for(let k=0;k<3;k++){const a=k*Math.PI*2/3-Math.PI/2,nx=Math.cos(a),ny=Math.sin(a);
             const d=innerR*0.5-((posX[idx]-cx)*nx+(posY[idx]-cy)*ny);if(d>0){posX[idx]-=nx*(d+1);posY[idx]-=ny*(d+1);velX[idx]*=-.1;velY[idx]*=-.1;}}}
     }
-}
-function drawCapture1D(){
-    if(!wireCtx||!mode1D||capture1DShape===0||capture1DLayers<1)return;
-    wireCtx.clearRect(0,0,W,H);
-    const cx=W/2,cy=H/2,radii=getCapture1DRadii();
-    wireCtx.strokeStyle='rgba(255,255,255,0.25)';wireCtx.lineWidth=1;
-    radii.forEach(R=>{
-        if(capture1DShape===1){
-            wireCtx.beginPath();wireCtx.arc(cx,cy,R,0,Math.PI*2);wireCtx.stroke();
-        }else if(capture1DShape===2){
-            wireCtx.beginPath();wireCtx.rect(cx-R,cy-R,R*2,R*2);wireCtx.stroke();
-        }else if(capture1DShape===3){
-            wireCtx.beginPath();
-            for(let k=0;k<=3;k++){const a=k*Math.PI*2/3-Math.PI/2;const x=cx+Math.cos(a)*R,y=cy+Math.sin(a)*R;if(k===0)wireCtx.moveTo(x,y);else wireCtx.lineTo(x,y);}
-            wireCtx.stroke();
-        }
-    });
 }
 // 2D формы
 document.querySelectorAll('#shapeBtns .sub-btn').forEach(btn=>{
@@ -587,9 +592,7 @@ document.querySelectorAll('#betaPatternBtns .sub-btn').forEach(btn=>{
 });
 // Beta mouse rotation (right-drag) + scroll zoom
 document.getElementById('glCanvas').addEventListener('contextmenu',e=>{if(dimension===4)e.preventDefault();});
-document.addEventListener('mousedown',e=>{if(dimension===4&&e.button===2){betaDragStart={x:e.clientX,y:e.clientY,rx:betaRotX,ry:betaRotY};e.preventDefault();}});
-document.addEventListener('mousemove',e=>{if(betaDragStart){betaRotY=betaDragStart.ry+(e.clientX-betaDragStart.x)*0.008;betaRotX=betaDragStart.rx+(e.clientY-betaDragStart.y)*0.008;}});
-document.addEventListener('mouseup',e=>{if(e.button===2)betaDragStart=null;});
+/* archived: betaDrag 4D */
 document.getElementById('glCanvas').addEventListener('wheel',e=>{if(dimension===4){betaZoom=Math.max(0.1,Math.min(3.0,betaZoom+e.deltaY*0.002));e.preventDefault();}},{passive:false});
 betaSliderDefs.forEach(d=>{const sl=document.getElementById(d.id),vl=document.getElementById(d.vid);
 if(sl){sl.addEventListener('input',e=>{e.stopPropagation();const v=+sl.value/d.div;d.s(v);vl.textContent=v.toFixed(2);});sl.addEventListener('touchstart',e=>e.stopPropagation());}});
@@ -606,7 +609,7 @@ let p3X,p3Y,p3Z,v3X,v3Y,v3Z;
 let vol4dSize=0.35,vol4dChaos=0.3;
 let cubeRotX=0.4,cubeRotY=0.3,cubeVelX=0,cubeVelY=0;
 let cubeDragging=false,cubeDragStartX=0,cubeDragStartY=0;
-const wireCanvas=document.getElementById('wireCanvas');
+const wireCanvas=null/*archived*/;
 const wireCtx=wireCanvas?wireCanvas.getContext('2d'):null;
 const GRAVITY=0.15;
 
@@ -771,9 +774,9 @@ document.querySelectorAll('#barrierBtns .sub-btn').forEach(btn=>{
         document.querySelectorAll('#barrierBtns .sub-btn').forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('barrierLayersRow').style.display=barrierShape>0?'flex':'none';
-        const wc=document.getElementById('wireCanvas');
-        if(barrierShape>0){wc.style.display='block';wc.width=W;wc.height=H;drawBarriers();}
-        else{if(dimension!==2){wc.style.display='none';if(wireCtx)wireCtx.clearRect(0,0,W,H);}}
+        const wc=null/*archived*/;
+        if(barrierShape>0){if(wc){wc.style.display='block';}if(wc){wc.width=W;wc.height=H;}/*archived: drawBarriers()*/}
+        else{if(dimension!==2){if(wc){wc.style.display='none';}if(typeof wireCtx!=='undefined'&&wireCtx)wireCtx.clearRect(0,0,W,H);}}
     });
 });
 const bLayersSl=document.getElementById('barrierLayersSlider'),bLayersVal=document.getElementById('barrierLayersVal');
@@ -873,29 +876,6 @@ function applyBarrierCollision(i){
     }
 }
 
-function drawBarriers(){
-    if(!wireCtx||barrierShape===0||dimension!==0)return;
-    wireCtx.clearRect(0,0,W,H);
-    const cx=W/2,cy=H/2;
-    const radii=getBarrierRadii();
-    wireCtx.strokeStyle='rgba(255,255,255,0.25)';
-    wireCtx.lineWidth=1;
-    if(barrierShape===1){// круги
-        radii.forEach(r=>{wireCtx.beginPath();wireCtx.arc(cx,cy,r,0,Math.PI*2);wireCtx.stroke();});
-    }else if(barrierShape===2){// квадраты
-        radii.forEach(r=>{wireCtx.beginPath();wireCtx.rect(cx-r,cy-r,r*2,r*2);wireCtx.stroke();});
-    }else if(barrierShape===3){// треугольники
-        radii.forEach(r=>{
-            wireCtx.beginPath();
-            for(let k=0;k<=3;k++){
-                const a=k*Math.PI*2/3-Math.PI/2;
-                const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;
-                if(k===0)wireCtx.moveTo(x,y);else wireCtx.lineTo(x,y);
-            }
-            wireCtx.stroke();
-        });
-    }
-}
 const dirCW=document.getElementById('dirCW'),dirCCW=document.getElementById('dirCCW');
 onTap(dirCW,e=>{e.stopPropagation();spinDirection=1;dirCW.classList.add('active');dirCCW.classList.remove('active');});
 onTap(dirCCW,e=>{e.stopPropagation();spinDirection=-1;dirCCW.classList.add('active');dirCW.classList.remove('active');});
@@ -997,7 +977,14 @@ let musicCtx=null,musicAnalyser=null,musicSource=null,musicGain=null,musicAudio=
 let prevSpectrum=null;
 const musicFile=document.getElementById('musicFile'),flowUploadArea=document.getElementById('flowUploadArea'),flowUploadText=document.getElementById('flowUploadText'),musicPlayBtn=document.getElementById('musicPlayBtn'),musicSeek=document.getElementById('musicSeek'),musicVol=document.getElementById('musicVol'),musicTimeNow=document.getElementById('musicTimeNow'),musicTimeDur=document.getElementById('musicTimeDur'),flowControls=document.getElementById('flowControls');
 onTap(flowUploadArea,e=>{e.stopPropagation();musicFile.click();});
-musicFile.addEventListener('change',function(e){e.stopPropagation();const file=this.files[0];if(!file)return;flowUploadText.textContent=file.name.length>18?file.name.slice(0,16)+'…':file.name;flowUploadArea.classList.add('has-track');flowControls.classList.add('visible');if(musicAudio){musicAudio.pause();musicPlaying=false;musicPlayBtn.textContent='▶';}musicAudio=new Audio();musicAudio.src=URL.createObjectURL(file);musicAudio.volume=musicVol.value/100;musicAudio.addEventListener('loadedmetadata',()=>{musicTimeDur.textContent=fmtTime(musicAudio.duration);musicSeek.max=musicAudio.duration;});musicAudio.addEventListener('ended',()=>{musicPlaying=false;musicPlayBtn.textContent='▶';musicPlayBtn.classList.remove('playing');});musicAudio.addEventListener('timeupdate',()=>{if(!musicSeeking){musicSeek.value=musicAudio.currentTime;musicTimeNow.textContent=fmtTime(musicAudio.currentTime);}});if(!musicCtx)musicCtx=new(window.AudioContext||window.webkitAudioContext)();if(musicSource)try{musicSource.disconnect();}catch(x){}musicSource=musicCtx.createMediaElementSource(musicAudio);musicAnalyser=musicCtx.createAnalyser();musicAnalyser.fftSize=512;musicAnalyser.smoothingTimeConstant=.75;musicGain=musicCtx.createGain();musicGain.gain.value=musicVol.value/100;musicSource.connect(musicAnalyser);musicAnalyser.connect(musicGain);musicGain.connect(musicCtx.destination);musicFreqData=new Uint8Array(musicAnalyser.frequencyBinCount);prevSpectrum=new Float32Array(musicAnalyser.frequencyBinCount);});
+musicFile.addEventListener('change',function(e){e.stopPropagation();const file=this.files[0];if(!file)return;flowUploadText.textContent=file.name.length>18?file.name.slice(0,16)+'…':file.name;flowUploadArea.classList.add('has-track');flowControls.classList.add('visible');
+// 🌿 Полотно — прослушиваем трек целиком, узнаём его характер
+trackPassport.ready=false;
+(function(){const actx=new(window.AudioContext||window.webkitAudioContext)();
+file.arrayBuffer().then(ab=>actx.decodeAudioData(ab)).then(buf=>{try{actx.close();}catch(x){}
+analyzeTrackPassport(buf);
+const bpmEl=document.getElementById('canvasBpmInfo');if(bpmEl)bpmEl.textContent=trackPassport.bpm?('♩ '+trackPassport.bpm+' BPM'):'';
+}).catch(()=>{try{actx.close();}catch(x){}});})();if(musicAudio){musicAudio.pause();musicPlaying=false;musicPlayBtn.textContent='▶';}musicAudio=new Audio();musicAudio.src=URL.createObjectURL(file);musicAudio.volume=musicVol.value/100;musicAudio.addEventListener('loadedmetadata',()=>{musicTimeDur.textContent=fmtTime(musicAudio.duration);musicSeek.max=musicAudio.duration;});musicAudio.addEventListener('ended',()=>{musicPlaying=false;musicPlayBtn.textContent='▶';musicPlayBtn.classList.remove('playing');});musicAudio.addEventListener('timeupdate',()=>{if(!musicSeeking){musicSeek.value=musicAudio.currentTime;musicTimeNow.textContent=fmtTime(musicAudio.currentTime);}});if(!musicCtx)musicCtx=new(window.AudioContext||window.webkitAudioContext)();if(musicSource)try{musicSource.disconnect();}catch(x){}musicSource=musicCtx.createMediaElementSource(musicAudio);musicAnalyser=musicCtx.createAnalyser();musicAnalyser.fftSize=512;musicAnalyser.smoothingTimeConstant=.75;musicGain=musicCtx.createGain();musicGain.gain.value=musicVol.value/100;musicSource.connect(musicAnalyser);musicAnalyser.connect(musicGain);musicGain.connect(musicCtx.destination);musicFreqData=new Uint8Array(musicAnalyser.frequencyBinCount);prevSpectrum=new Float32Array(musicAnalyser.frequencyBinCount);});
 let musicSeeking=false;musicSeek.addEventListener('mousedown',()=>musicSeeking=true);musicSeek.addEventListener('touchstart',e=>{e.stopPropagation();musicSeeking=true;});musicSeek.addEventListener('input',e=>{e.stopPropagation();if(musicAudio)musicTimeNow.textContent=fmtTime(+musicSeek.value);});musicSeek.addEventListener('change',e=>{e.stopPropagation();if(musicAudio)musicAudio.currentTime=+musicSeek.value;musicSeeking=false;});musicSeek.addEventListener('mouseup',()=>musicSeeking=false);musicSeek.addEventListener('touchend',e=>{e.stopPropagation();musicSeeking=false;});musicVol.addEventListener('input',e=>{e.stopPropagation();if(musicAudio)musicAudio.volume=musicVol.value/100;if(musicGain)musicGain.gain.value=musicVol.value/100;});musicVol.addEventListener('touchstart',e=>e.stopPropagation());
 onTap(musicPlayBtn,e=>{e.stopPropagation();if(!musicAudio||!musicAudio.src)return;if(musicCtx&&musicCtx.state==='suspended')musicCtx.resume();if(musicPlaying){musicAudio.pause();musicPlaying=false;musicPlayBtn.textContent='▶';musicPlayBtn.classList.remove('playing');}else{musicAudio.play();musicPlaying=true;musicPlayBtn.textContent='⏸';musicPlayBtn.classList.add('playing');}});
 
@@ -1161,10 +1148,134 @@ hue[i]=1/(1+Math.exp(-(2+thetaNorm*4)*(phiNorm*2-1)));
 }
 if(useWebGL&&gl){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.DYNAMIC_DRAW);}
 }
-if(currentMode==='mandala'&&(mouseDown||touchPoints.length>0))points.push({x:W/2,y:H/2,strength:0.5});if((musicPlaying||beatPlaying)&&musicBands.energy>.01){const cx=W/2,cy=H/2,e=musicBands.energy;points.push({x:cx,y:cy,strength:e*1.5});const orbitSpeed=time*.001*(1+musicBands.mid*3)*spinDirection;const orbitR=Math.min(W,H)*.25*(1+musicBands.bass*.5);for(let k=0;k<4;k++){const a=orbitSpeed+k*Math.PI/2;points.push({x:cx+Math.cos(a)*orbitR,y:cy+Math.sin(a)*orbitR,strength:e*.7});}}// --- Мандала подрежимы: кольцевая физика ---
+if(currentMode==='mandala'&&(mouseDown||touchPoints.length>0))points.push({x:W/2,y:H/2,strength:0.5});
+// 🎵 Музыка = виртуальный курсор v3 — по анализу движений Яна
+if((musicPlaying||beatPlaying)&&!classicVisOn&&(musicNorm.energy>.08||beatPulse>.1)){
+    const cx=W/2,cy=H/2;
+    const e=Math.max(musicNorm.energy,beatPulse*.3);
+    const maxR=Math.min(W,H);
+    // 🌿 скорость — энергия управляет, тихо = почти стоит, дроп = разгон
+    const orbSpeed=time*0.0005*(0.15+musicNorm.energy*3.5)*spinDirection;
+    // 🌿 радиус — широкий бас-дыхание (50-70% экрана как Ян делает руками)
+    let orbR=maxR*(0.18+musicNorm.bass*0.38);
+    // 🌿 радиальный пульс — на удар рывок к центру и возврат
+    if(beatPulse>0.12)orbR*=(1-beatPulse*0.6);
+    // 🌿 основной палец — ведёт тему широкими кругами
+    points.push({x:cx+Math.cos(orbSpeed)*orbR,y:cy+Math.sin(orbSpeed)*orbR,strength:e*1.4});
+    // 🌿 второй палец — противофаза, высокие дёргают, фаза плывёт
+    const hiR=maxR*(0.1+musicNorm.high*0.3);
+    const hiPhase=orbSpeed+Math.PI+Math.sin(time*0.0009)*0.6;
+    points.push({x:cx+Math.cos(hiPhase)*hiR,y:cy+Math.sin(hiPhase)*hiR,strength:musicNorm.high*0.85+0.1});
+    // 🌿 ударный палец — бит = выстрел перпендикулярно
+    if(beatPulse>0.18){
+        const beatA=orbSpeed+Math.PI*0.5;
+        const beatR=maxR*0.38*beatPulse;
+        points.push({x:cx+Math.cos(beatA)*beatR,y:cy+Math.sin(beatA)*beatR,strength:beatPulse*1.7});
+    }
+    // 🌿 тишина — если энергия падает ниже порога, пальцы уходят (контраст)
+}
+// --- Мандала подрежимы: кольцевая физика ---
 const isMandSub=currentMode==='mandala'&&Math.round(modeParams.mandala.sub||0)>0;
 const isSphere=currentMode==='sphere';
-if(isMandSub||isSphere){
+const isYantra=currentMode==='yantra';
+// 🌿 Полотно — трек рисует себя сам, по своему паспорту
+const isCanvasVis=canvasVisOn&&!classicVisOn&&musicPlaying&&trackPassport.ready&&musicAudio;
+if(isCanvasVis){
+const ct=musicAudio.currentTime;
+// сетка битов — удары точно в такт
+const bts=trackPassport.beats;
+if(trackPassport.beatPtr>0&&bts[trackPassport.beatPtr-1]>ct+0.5)trackPassport.beatPtr=0;// перемотка назад
+while(trackPassport.beatPtr<bts.length&&bts[trackPassport.beatPtr]<ct-0.3)trackPassport.beatPtr++;
+if(trackPassport.beatPtr<bts.length&&bts[trackPassport.beatPtr]<=ct){canvasWave=1;trackPassport.beatPtr++;}
+canvasWave*=Math.exp(-dt*6);
+// энергия трека — рельеф из паспорта, сглаженный
+canvasE+=(passportEnergyAt(ct)-canvasE)*0.08;
+// автостиль: перкуссивный → кольца чёткие, спокойный → туманность
+const perc=trackPassport.percussive,bright=trackPassport.brightness;
+const cx=W/2,cy=H/2,maxR=Math.min(W,H)*0.42;
+const rotSpd=time*0.0002*(0.4+musicNorm.mid*1.6)*(0.5+bright)*spinDirection;
+const lf=0.07*dt*60;
+for(let i=0;i<TOTAL;i++){
+    const frac=i/TOTAL;
+    // золотая спираль — основа композиции
+    const ga=i*2.39996+rotSpd;
+    let r=maxR*Math.sqrt(frac)*(0.5+0.5*canvasE);
+    // удар — рябь бежит наружу
+    if(canvasWave>0.02)r+=Math.sin(frac*9-(1-canvasWave)*11)*canvasWave*maxR*0.13;
+    // туманность — органическое дыхание для спокойных треков
+    if(perc<0.45)r+=Math.sin(i*0.37+time*0.0006)*maxR*0.1*(1-perc);
+    let tx2=cx+Math.cos(ga)*r,ty2=cy+Math.sin(ga)*r;
+    // высокие — мерцание, дрожь света
+    const jit=musicNorm.high*4*(0.5+bright);
+    tx2+=Math.sin(time*0.02+i*0.9)*jit;ty2+=Math.cos(time*0.023+i*1.3)*jit;
+    posX[i]+=(tx2-posX[i])*lf;posY[i]+=(ty2-posY[i])*lf;
+    velX[i]=(tx2-posX[i])*lf;velY[i]=(ty2-posY[i])*lf;
+}
+// тач — играем с полотном
+if(mouseDown||touchPoints.length>0){const pts3=[];if(mouseDown)pts3.push(mousePos);for(let ti=0;ti<touchPoints.length;ti++)pts3.push(touchPoints[ti]);
+    for(let i=0;i<TOTAL;i++){for(let p=0;p<pts3.length;p++){const dx=posX[i]-pts3[p].x,dy=posY[i]-pts3[p].y;const dd=Math.sqrt(dx*dx+dy*dy);
+        if(dd<160&&dd>1){const push=9/(dd*0.1+1);posX[i]+=dx/dd*push;posY[i]+=dy/dd*push;}}}}
+}else if(isYantra){
+// 🌿 Янтра — священная геометрия из прямых линий
+const mp=modeParams.yantra,sub=Math.round(mp.sub||0),layers=Math.round(mp.layers||4);
+const sharp=mp.sharpness||1,spin=(mp.yantraSpin||0.5)*spinDirection;
+const cx=W/2,cy=H/2,maxR=Math.min(W,H)*0.38;
+const rot=time*0.0003*spin;
+// 🌿 строим рёбра янтры
+const segs=[],segLens=[];
+for(let l=0;l<layers;l++){
+    const r=maxR*(0.15+0.85*(1-l/layers));
+    if(sub===0){// Шри — чередующиеся треугольники
+        const bRot=rot+(l%2===0?-Math.PI/2:Math.PI/2);
+        for(let s=0;s<3;s++){const a1=bRot+s*Math.PI*2/3,a2=bRot+(s+1)*Math.PI*2/3;
+            segs.push({x1:cx+Math.cos(a1)*r,y1:cy+Math.sin(a1)*r,x2:cx+Math.cos(a2)*r,y2:cy+Math.sin(a2)*r});}
+    }else if(sub===1){// Звезда — два треугольника
+        for(let d=0;d<2;d++){const bRot2=rot+(d===0?-Math.PI/2:Math.PI/2);
+            for(let s=0;s<3;s++){const a1=bRot2+s*Math.PI*2/3,a2=bRot2+(s+1)*Math.PI*2/3;
+                segs.push({x1:cx+Math.cos(a1)*r,y1:cy+Math.sin(a1)*r,x2:cx+Math.cos(a2)*r,y2:cy+Math.sin(a2)*r});}}
+    }else if(sub===2){// Бхупура — повёрнутые квадраты
+        const bRot3=rot+l*Math.PI/4+Math.PI/4;
+        for(let s=0;s<4;s++){const a1=bRot3+s*Math.PI/2,a2=bRot3+(s+1)*Math.PI/2;
+            segs.push({x1:cx+Math.cos(a1)*r,y1:cy+Math.sin(a1)*r,x2:cx+Math.cos(a2)*r,y2:cy+Math.sin(a2)*r});}
+    }else{// Кристалл — ромбы
+        const bRot4=rot+l*Math.PI/6;
+        for(let s=0;s<4;s++){const a1=bRot4+s*Math.PI/2,a2=bRot4+(s+1)*Math.PI/2;
+            segs.push({x1:cx+Math.cos(a1)*r,y1:cy+Math.sin(a1)*r,x2:cx+Math.cos(a2)*r,y2:cy+Math.sin(a2)*r});}
+    }
+}
+for(let j=0;j<segs.length;j++){const s=segs[j];segLens.push(Math.sqrt((s.x2-s.x1)**2+(s.y2-s.y1)**2));}
+const totalLen=segLens.reduce((a,b)=>a+b,0);
+// 🌿 кумулятивные длины для быстрого поиска
+const cumLen=[0];for(let j=0;j<segLens.length;j++)cumLen.push(cumLen[j]+segLens[j]);
+// 🌿 распределяем частицы по рёбрам с толщиной и дыханием
+const lf=sharp*0.05*dt*60;
+const ribbonWidth=25/sharp;// ширина ленты — чем резче, тем тоньше
+for(let i=0;i<TOTAL;i++){
+    let d=(i/TOTAL)*totalLen,si=0;
+    for(let j=0;j<segs.length;j++){if(cumLen[j+1]>=d){si=j;break;}}
+    const t2=(d-cumLen[si])/(segLens[si]+0.001);
+    let tx=segs[si].x1+(segs[si].x2-segs[si].x1)*t2;
+    let ty=segs[si].y1+(segs[si].y2-segs[si].y1)*t2;
+    // 🌿 разброс — частицы живут вокруг рёбер, не на них
+    const perpX=-(segs[si].y2-segs[si].y1)/(segLens[si]+0.01);
+    const perpY=(segs[si].x2-segs[si].x1)/(segLens[si]+0.01);
+    const spread=(Math.sin(i*0.37)*0.5+Math.sin(i*1.13)*0.3+Math.cos(i*0.71)*0.2)*maxR*0.18/sharp;
+    tx+=perpX*spread;ty+=perpY*spread;
+    // 🌿 перпендикуляр к ребру — частицы образуют ленты, не линии
+    const edx=segs[si].x2-segs[si].x1,edy=segs[si].y2-segs[si].y1;
+    const elen=segLens[si]+0.001;
+    const nx=-edy/elen,ny=edx/elen;
+    // отклонение: уникальное для каждой частицы + дышит со временем
+    const offset=Math.sin(i*0.37+time*0.0015)*ribbonWidth+Math.cos(i*0.73+time*0.001)*ribbonWidth*0.5;
+    tx+=nx*offset;ty+=ny*offset;
+    posX[i]+=(tx-posX[i])*lf;posY[i]+=(ty-posY[i])*lf;
+    velX[i]=(tx-posX[i])*lf;velY[i]=(ty-posY[i])*lf;
+}
+// 🌿 тач — разгоняет частицы от пальца
+if(mouseDown||touchPoints.length>0){const pts2=[];if(mouseDown)pts2.push(mousePos);for(let ti=0;ti<touchPoints.length;ti++)pts2.push(touchPoints[ti]);
+    for(let i=0;i<TOTAL;i++){for(let p=0;p<pts2.length;p++){const dx=posX[i]-pts2[p].x,dy=posY[i]-pts2[p].y;const dd=Math.sqrt(dx*dx+dy*dy);
+        if(dd<150&&dd>1){const push=8/(dd*0.1+1);posX[i]+=dx/dd*push;posY[i]+=dy/dd*push;}}}}
+}else if(isMandSub||isSphere){
 const mp=modeParams.mandala,msub=Math.round(mp.sub),cx=W/2,cy=H/2;
 const maxR=Math.min(W,H)*0.42,rings=Math.round(mp.rings||5),petals=Math.round(mp.petals||8);
 const spn=(mp.mandalaSpin||1)*spinDirection;
@@ -1299,11 +1410,32 @@ renderWithMode(glPositions,1);}
 function render2D(){if(!ctx2d)return;const imgData=ctx2d.createImageData(W,H),data=imgData.data;for(let i=0;i<TOTAL;i++){const px=posX[i]|0,py=posY[i]|0;if(px<0||px>=W||py<0||py>=H)continue;const r=colorCache[i*3],g=colorCache[i*3+1],b=colorCache[i*3+2];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const sx=px+dx,sy=py+dy;if(sx<0||sx>=W||sy<0||sy>=H)continue;const w=Math.exp(-(dx*dx+dy*dy)*.8)*1.2,off=(sy*W+sx)*4;data[off]=Math.min(255,data[off]+r*w);data[off+1]=Math.min(255,data[off+1]+g*w);data[off+2]=Math.min(255,data[off+2]+b*w);data[off+3]=255;}}ctx2d.putImageData(imgData,0,0);}
 function render(){if(useWebGL&&gl&&!contextLost)renderGL();else render2D();}
 let lastTime=performance.now(),animFrame;
-function loop(ts){const dt=Math.min(.1,(ts-lastTime)/1000);lastTime=ts;if(dimension===4){time+=dt*1000*spinSpeed;renderBetaVisual(dt);}else if(dimension===3&&threeReady){time+=dt*1000*spinSpeed;render3DScene(dt);}else{update(dt);render();if(dimension===0&&barrierShape>0&&!mode1D)drawBarriers();if(mode1D)drawCapture1D();}animFrame=requestAnimationFrame(loop);}
-window.addEventListener('resize',()=>{cancelAnimationFrame(animFrame);init();if(wireCanvas){wireCanvas.width=window.innerWidth;wireCanvas.height=window.innerHeight;}if(dimension===2)init4D();if(dimension===4&&gl){gl.viewport(0,0,W,H);}if(dimension===3&&threeReady){renderer3D.setSize(W,H);camera3D.aspect=W/H;camera3D.updateProjectionMatrix();}lastTime=performance.now();animFrame=requestAnimationFrame(loop);});
+function loop(ts){const dt=Math.min(.1,(ts-lastTime)/1000);lastTime=ts;if(dimension===3&&threeReady){time+=dt*1000*spinSpeed;render3DScene(dt);}else{update(dt);render();}if(classicVisOn)drawClassicAnalyzer();if(window._updateHoneycomb)window._updateHoneycomb(ts);if(window._updateFibers)window._updateFibers();animFrame=requestAnimationFrame(loop);}
+let _resizeTimer=null;
+window.addEventListener('resize',()=>{
+    clearTimeout(_resizeTimer);
+    _resizeTimer=setTimeout(()=>{
+        cancelAnimationFrame(animFrame);init();if(wireCanvas){wireCanvas.width=window.innerWidth;wireCanvas.height=window.innerHeight;}if(dimension===2)init4D();if(dimension===4&&gl){gl.viewport(0,0,W,H);}if(dimension===3&&threeReady){renderer3D.setSize(W,H);camera3D.aspect=W/H;camera3D.updateProjectionMatrix();}lastTime=performance.now();animFrame=requestAnimationFrame(loop);
+    },200);
+});
 const initNorm=normalizeStops(currentStops);for(let i=0;i<9;i++){shaderH[i]=initNorm[i].h;shaderS[i]=initNorm[i].s;shaderV[i]=initNorm[i].v;}
 if(useWebGL)initGPU();init();render();animFrame=requestAnimationFrame(loop);
 enhanceSliders();applyPlan();
+// #19 haptic feedback
+function haptic(ms){try{if(navigator.vibrate)navigator.vibrate(ms||10);}catch(e){}}
+// #10 keyboard shortcuts
+document.addEventListener('keydown',function(e){
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+    if(e.key===' '||e.code==='Space'){e.preventDefault();const pb=document.getElementById('bgmPlayBtn');if(pb)pb.click();}
+    else if(e.key==='Escape'){
+        if(sidePanel.classList.contains('open')){sidePanel.classList.remove('open');activeTool=null;toolIcons.forEach(function(t){t.classList.remove('active');});}
+        const pp=document.getElementById('profilePanel');if(pp&&pp.classList.contains('open'))pp.classList.remove('open');
+        const bp=document.querySelector('.beat-panel.open');if(bp)bp.classList.remove('open');
+        const bm=document.getElementById('bgMusicPanel');if(bm&&bm.classList.contains('open'))bm.classList.remove('open');
+    }
+    else if(e.key==='['||e.key==='{'){ const keys=Object.keys(palettes);const ci=keys.indexOf(currentPaletteKey);const ni=(ci-1+keys.length)%keys.length;const btn=document.querySelector('.palette-item[data-palette="'+keys[ni]+'"]');if(btn)btn.click();haptic();}
+    else if(e.key===']'||e.key==='}'){ const keys=Object.keys(palettes);const ci=keys.indexOf(currentPaletteKey);const ni=(ci+1)%keys.length;const btn=document.querySelector('.palette-item[data-palette="'+keys[ni]+'"]');if(btn)btn.click();haptic();}
+});
 // 🌿 Мобильная шторка
 const mDrawer=document.getElementById('mobileDrawer');
 const mGrip=document.getElementById('drawerGrip');
@@ -1445,9 +1577,329 @@ document.getElementById('bgMusicPanel').addEventListener('mousedown',e=>e.stopPr
 document.getElementById('bgMusicPanel').addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
 // 🌿 тест тарифов
 document.querySelectorAll('#planBtns .sub-btn').forEach(btn=>{
+    if(btn.dataset.plan===userPlan)btn.classList.add('active');
     onTap(btn,function(e){e.stopPropagation();userPlan=btn.dataset.plan;
         document.querySelectorAll('#planBtns .sub-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyPlan();});
 });
 const dlcAS=document.getElementById('dlcAudioSwitch'),dlcBS=document.getElementById('dlcBeatsSwitch');
 if(dlcAS)onTap(dlcAS,function(e){e.stopPropagation();dlcAudio=!dlcAudio;dlcAS.classList.toggle('on',dlcAudio);applyPlan();});
 if(dlcBS)onTap(dlcBS,function(e){e.stopPropagation();dlcBeats=!dlcBeats;dlcBS.classList.toggle('on',dlcBeats);applyPlan();});
+
+// 🐝 Соты — гексагональная решётка с волнами света
+(function(){
+    const hcCanvas=document.getElementById('honeycombCanvas');
+    if(!hcCanvas)return;
+    const hctx=hcCanvas.getContext('2d');
+    let hcCells=[],hcWaves=[],hcActive=false,hcPalNS=null;
+
+    function resizeHC(){hcCanvas.width=window.innerWidth;hcCanvas.height=window.innerHeight;}
+    window.addEventListener('resize',function(){if(hcActive){resizeHC();buildHCGrid();}});
+
+    // 🌿 строим гексагональную сетку
+    function buildHCGrid(){
+        const mp=modeParams.honeycomb,sz=mp.cellSize||18,gap=mp.gap||2;
+        hcCells=[];
+        const W=hcCanvas.width,H=hcCanvas.height;
+        const dx=sz*1.75+gap,dy=sz*1.52+gap;
+        const cols=Math.ceil(W/dx)+2,rows=Math.ceil(H/dy)+2;
+        for(let row=0;row<rows;row++){
+            for(let col=0;col<cols;col++){
+                const x=col*dx+(row%2)*(dx/2);
+                const y=row*dy;
+                if(x>W+sz||y>H+sz)continue;
+                // цвет из палитры по позиции
+                const t=((Math.atan2(y-H/2,x-W/2)/(Math.PI*2))+1)%1;
+                hcCells.push({x:x,y:y,t:t,brightness:0});
+            }
+        }
+    }
+
+    // 🌿 рисуем один гексагон
+    function drawHex(ctx,cx,cy,r,gap){
+        ctx.beginPath();
+        for(let i=0;i<6;i++){
+            const ang=Math.PI/6+i*Math.PI/3;
+            const px=cx+Math.cos(ang)*(r-gap*0.5);
+            const py=cy+Math.sin(ang)*(r-gap*0.5);
+            if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+        }
+        ctx.closePath();
+    }
+
+    // 🌿 обновляем яркости ячеек от всех активных волн
+    function updateHC(now){
+        const mp=modeParams.honeycomb,decay=mp.decay||1.2,speed=(mp.waveSpeed||1.5)*200;
+        // затухание
+        for(let i=0;i<hcCells.length;i++)hcCells[i].brightness*=0.92;
+        // волны — расходящиеся кольца
+        for(let w=hcWaves.length-1;w>=0;w--){
+            const wave=hcWaves[w];
+            const age=(now-wave.time)/1000;
+            const radius=age*speed;
+            const strength=wave.strength*Math.exp(-age*decay);
+            if(strength<0.01){hcWaves.splice(w,1);continue;}
+            const ringW=40+age*30; // ширина кольца растёт
+            for(let i=0;i<hcCells.length;i++){
+                const c=hcCells[i];
+                const dist=Math.hypot(c.x-wave.x,c.y-wave.y);
+                const d=Math.abs(dist-radius);
+                if(d<ringW){
+                    const contrib=strength*(1-d/ringW);
+                    c.brightness=Math.min(1,c.brightness+contrib);
+                }
+            }
+        }
+        // 🎵 музыка пускает волны автоматически
+        if((typeof musicPlaying!=='undefined'&&musicPlaying)||(typeof beatPlaying!=='undefined'&&beatPlaying)){
+            if(typeof beatPulse!=='undefined'&&beatPulse>0.5){
+                hcWaves.push({x:hcCanvas.width/2,y:hcCanvas.height/2,time:now,strength:0.7});
+                beatPulse=0.3; // гасим чтобы не спамить
+            }
+        }
+    }
+
+    // 🌿 рисуем соты
+    function renderHC(){
+        const mp=modeParams.honeycomb,sz=mp.cellSize||18,gap=mp.gap||2;
+        const isKaleidoscope=Math.round(mp.sub||0)===1;
+        hctx.fillStyle='#000';
+        hctx.fillRect(0,0,hcCanvas.width,hcCanvas.height);
+        if(!hcPalNS&&typeof normalizeStops==='function'&&typeof palettes!=='undefined'){
+            hcPalNS=normalizeStops(palettes.default.stops);
+        }
+        const now=performance.now();
+        const W=hcCanvas.width,H=hcCanvas.height,cx=W/2,cy=H/2;
+        for(let i=0;i<hcCells.length;i++){
+            const c=hcCells[i];
+            let t=c.t,br=c.brightness;
+            if(isKaleidoscope){
+                // 🔮 Калейдоскоп — зеркальная симметрия, цвет по расстоянию+углу, всегда видно
+                const dx=c.x-cx,dy=c.y-cy;
+                const dist=Math.hypot(dx,dy);
+                const ang=Math.atan2(Math.abs(dy),Math.abs(dx)); // зеркалим в первый квадрант
+                // цвет вращается со временем — калейдоскоп живёт
+                t=((ang/Math.PI+dist*0.003+now*0.00015)%1+1)%1;
+                // квантизация в 6 ступеней — резкие цветовые границы как стёклышки
+                t=Math.round(t*6)/6;
+                br=0.25+br*0.75; // всегда видно, волна усиливает
+            }else{
+                if(br<0.01)continue;
+            }
+            let r=170,g=120,b=240;
+            if(hcPalNS){const rgb=getPaletteColorCPU(t,hcPalNS);r=rgb[0];g=rgb[1];b=rgb[2];}
+            hctx.fillStyle=`rgba(${Math.round(r*br)},${Math.round(g*br)},${Math.round(b*br)},${isKaleidoscope?0.92:0.15+br*0.85})`;
+            drawHex(hctx,c.x,c.y,sz,gap);
+            hctx.fill();
+            if(isKaleidoscope){
+                hctx.strokeStyle='rgba(0,0,0,0.55)';hctx.lineWidth=Math.max(1,gap);hctx.stroke();
+            }
+        }
+    }
+
+    // 🌿 касания пускают волны
+    function hcPointerDown(e){
+        if(!hcActive)return;
+        const r=hcCanvas.getBoundingClientRect();
+        hcWaves.push({x:e.clientX-r.left,y:e.clientY-r.top,time:performance.now(),strength:1});
+    }
+    function hcPointerMove(e){
+        if(!hcActive||!e.buttons)return;
+        const r=hcCanvas.getBoundingClientRect();
+        // при перетаскивании — маленькие волны по пути
+        if(Math.random()<0.3){
+            hcWaves.push({x:e.clientX-r.left,y:e.clientY-r.top,time:performance.now(),strength:0.4});
+        }
+    }
+    hcCanvas.addEventListener('pointerdown',hcPointerDown);
+    hcCanvas.addEventListener('pointermove',hcPointerMove);
+
+    // 🌿 хук на переключение режима — показываем/скрываем канвас сот
+    const origSwitchMode=window._hcOrigSwitch||(function(){
+        // перехватываем момент смены currentMode
+        let lastMode='';
+        setInterval(function(){
+            if(typeof currentMode==='undefined')return;
+            if(currentMode===lastMode)return;
+            lastMode=currentMode;
+            if(currentMode==='honeycomb'){
+                hcActive=true;
+                hcCanvas.classList.add('active');
+                resizeHC();buildHCGrid();hcWaves=[];
+            }else{
+                hcActive=false;
+                hcCanvas.classList.remove('active');
+            }
+        },200);
+    })();
+
+    // 🌿 цикл обновления сот — вызывается из основного loop
+    window._updateHoneycomb=function(now){
+        if(!hcActive)return;
+        updateHC(now);
+        renderHC();
+    };
+})();
+
+// 🌌 Начало — от пустоты к вселенной (первый запуск)
+(function(){
+    const GK='sf_genesisDone';
+    if(localStorage.getItem(GK)==='1')return;
+
+    let phase=0,bx=0,by=0,savedTotal=TOTAL;
+    const hint=document.getElementById('genesisHint');
+
+    // Скрываем UI, обнуляем частицы
+    document.body.classList.add('ui-hidden');
+    for(let i=0;i<savedTotal;i++){posX[i]=-999;posY[i]=-999;velX[i]=0;velY[i]=0;}
+
+    if(hint)hint.style.display='';
+
+    function divide(n){
+        const prev=Math.max(1,TOTAL);
+        TOTAL=Math.min(n,savedTotal);
+        for(let i=prev;i<TOTAL;i++){
+            const pi=Math.floor(Math.random()*prev);
+            const a=Math.random()*Math.PI*2,d=4+Math.random()*18;
+            posX[i]=posX[pi]+Math.cos(a)*d;
+            posY[i]=posY[pi]+Math.sin(a)*d;
+            velX[i]=(Math.random()-0.5)*1.5;velY[i]=(Math.random()-0.5)*1.5;
+        }
+    }
+
+    document.addEventListener('pointerdown',function handler(e){
+        if(phase!==0)return;
+        if(e.target.closest&&e.target.closest('.toolbar,.side-panel,.profile-panel,.scene-bar'))return;
+        phase=1;bx=e.clientX;by=e.clientY;
+        if(hint){hint.classList.add('fade');setTimeout(()=>{hint.style.display='none';},800);}
+
+        // Одна частица — рождение
+        TOTAL=1;posX[0]=bx;posY[0]=by;velX[0]=0;velY[0]=0;
+
+        setTimeout(()=>divide(6),1200);
+        setTimeout(()=>divide(30),2200);
+        setTimeout(()=>divide(150),3200);
+        setTimeout(()=>divide(600),4200);
+        setTimeout(()=>{divide(2000);currentMode='vortex';},5500);
+        setTimeout(()=>divide(6000),7000);
+        setTimeout(()=>{
+            TOTAL=savedTotal;
+            for(let i=6000;i<TOTAL;i++){
+                const a=Math.random()*Math.PI*2,r=40+Math.random()*Math.max(W,H)*0.45;
+                posX[i]=bx+Math.cos(a)*r;posY[i]=by+Math.sin(a)*r;
+                velX[i]=(Math.random()-0.5)*2;velY[i]=(Math.random()-0.5)*2;
+            }
+        },9000);
+        setTimeout(()=>{
+            document.body.classList.remove('ui-hidden');
+            localStorage.setItem(GK,'1');
+        },11500);
+
+        document.removeEventListener('pointerdown',handler);
+    });
+})();
+
+// 🧵 Волокна — частицы оставляют нити-хвосты
+(function(){
+    let active=false;
+    const HLEN=30; // длина хвоста в кадрах
+    const NFIBERS=1500; // сколько нитей рисуем
+    let histX,histY,hPtr=0;
+
+    const fPalNS=(typeof normalizeStops==='function'&&typeof palettes!=='undefined')?normalizeStops(palettes.default.stops):null;
+    function fRGB(t){if(fPalNS)return getPaletteColorCPU(t,fPalNS);return [170,120,240];}
+
+    let lastMode='';
+    setInterval(function(){
+        if(typeof currentMode==='undefined')return;
+        if(currentMode===lastMode)return;
+        lastMode=currentMode;
+        if(currentMode==='fibers'){
+            active=true;
+            histX=new Float32Array(NFIBERS*HLEN);
+            histY=new Float32Array(NFIBERS*HLEN);
+            for(let i=0;i<NFIBERS;i++){
+                for(let t=0;t<HLEN;t++){
+                    histX[i*HLEN+t]=posX[i]||0;
+                    histY[i*HLEN+t]=posY[i]||0;
+                }
+            }
+            hPtr=0;
+        }else{
+            active=false;
+        }
+    },200);
+
+    window._updateFibers=function(){
+        if(!active||!histX)return;
+        if(!useWebGL&&ctx2d)return; // для 2D fallback пока пропускаем
+        // Сдвигаем историю: новые позиции записываем в текущий слот
+        for(let i=0;i<NFIBERS;i++){
+            // Сдвигаем всё на 1 назад
+            for(let t=HLEN-1;t>0;t--){
+                histX[i*HLEN+t]=histX[i*HLEN+t-1];
+                histY[i*HLEN+t]=histY[i*HLEN+t-1];
+            }
+            histX[i*HLEN]=posX[i];
+            histY[i*HLEN]=posY[i];
+        }
+        // Рисуем нити через WebGL overlay — но проще через dim-quad подход:
+        // Не очищаем glCanvas полностью → нити накапливаются как следы
+        // Это работает если в renderGL мы рисуем полупрозрачный чёрный квад перед частицами
+    };
+    // Простой подход: рисуем на отдельном 2D canvas
+    let fCanvas=null,fCtx=null;
+    function ensureFCanvas(){
+        if(fCanvas)return;
+        fCanvas=document.createElement('canvas');
+        fCanvas.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none;';
+        document.body.appendChild(fCanvas);
+        fCtx=fCanvas.getContext('2d');
+    }
+
+    window._updateFibers=function(){
+        if(!active||!histX)return;
+        ensureFCanvas();
+        if(fCanvas.style.display==='none'){
+            fCanvas.style.display='block';
+            fCanvas.width=window.innerWidth;fCanvas.height=window.innerHeight;
+        }
+        const mp=modeParams.fibers||{};
+        const tLen=Math.min(HLEN,Math.round(mp.trailLen||20));
+        const thick=mp.thickness||1;
+
+        // Сдвигаем историю
+        for(let i=0;i<NFIBERS;i++){
+            for(let t=HLEN-1;t>0;t--){
+                histX[i*HLEN+t]=histX[i*HLEN+t-1];
+                histY[i*HLEN+t]=histY[i*HLEN+t-1];
+            }
+            histX[i*HLEN]=posX[i];
+            histY[i*HLEN]=posY[i];
+        }
+
+        // Затухающий фон — нити накапливаются
+        fCtx.fillStyle='rgba(0,0,0,0.08)';
+        fCtx.fillRect(0,0,fCanvas.width,fCanvas.height);
+        fCtx.globalCompositeOperation='lighter';
+
+        for(let i=0;i<NFIBERS;i+=2){ // каждая вторая для производительности
+            const rgb=fRGB((i/NFIBERS)%1);
+            fCtx.beginPath();
+            fCtx.moveTo(histX[i*HLEN],histY[i*HLEN]);
+            for(let t=1;t<tLen;t++){
+                fCtx.lineTo(histX[i*HLEN+t],histY[i*HLEN+t]);
+            }
+            fCtx.strokeStyle=`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.35)`;
+            fCtx.lineWidth=thick;
+            fCtx.stroke();
+        }
+        fCtx.globalCompositeOperation='source-over';
+    };
+
+    // Скрываем canvas при выходе из режима
+    let prevActive=false;
+    setInterval(function(){
+        if(prevActive&&!active&&fCanvas)fCanvas.style.display='none';
+        prevActive=active;
+    },300);
+})();

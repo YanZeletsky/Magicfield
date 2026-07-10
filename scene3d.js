@@ -139,16 +139,22 @@ function loadThreeJS(callback){
     if(threeLoading)return;
     threeLoading=true;
     const el=document.getElementById('threeLoading');if(el)el.style.display='block';
+    function onFail(){
+        threeLoading=false;if(el)el.style.display='none';
+        showLockToast('3D недоступен — проверьте интернет');
+        const btn2d=document.querySelector('.scene-btn[data-scene="2d"]');if(btn2d)btn2d.click();
+        document.querySelectorAll('.scene-btn[data-scene="3d"]').forEach(function(b){b.classList.add('locked');});
+    }
     const s1=document.createElement('script');
     s1.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
     s1.onload=function(){
         const s2=document.createElement('script');
         s2.src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
         s2.onload=function(){threeLoading=false;if(el)el.style.display='none';callback();};
-        s2.onerror=function(){threeLoading=false;if(el)el.textContent='Ошибка загрузки';};
+        s2.onerror=onFail;
         document.head.appendChild(s2);
     };
-    s1.onerror=function(){threeLoading=false;if(el)el.textContent='Ошибка загрузки';};
+    s1.onerror=onFail;
     document.head.appendChild(s1);
 }
 function createGlowTex(){
@@ -302,7 +308,7 @@ function getVortexForce3D(px,py,pz,pts){
 }
 // 🌿 3D-силы — масштабированы по образцу вихря (vortexForce3D ≈ 0.15)
 const manualModes3D=['vortex','turbulence','electrostatic','wave','pulsar','swarm'];
-const autoModes3D=['fibonacci','lorenz','mycelium','breathing'];
+const autoModes3D=['fibonacci','lorenz','mycelium','breathing','galaxy','blackhole','neural','crystal','meteor','nebula'];
 
 function getTurbulenceForce3D(px,py,pz,pts,t){
     let fx=0,fy=0,fz=0;const mp=modeParams.turbulence,inten=mp.intensity||1,ns=mp.noiseScale||1,f3d=vortexForce3D;
@@ -403,6 +409,177 @@ function getBreathingForce3D(px,py,pz,pts,t){
         fx+=dx/dist*a;fy+=dy/dist*a;fz+=dz/dist*a;}
     return{fx,fy,fz};}
 
+// 🌌 Галактика — спиральные рукава из звёздной пыли
+function getGalaxyForce3D(px,py,pz,pts,t){
+    let fx=0,fy=0,fz=0;const mp=modeParams.galaxy,f3d=vortexForce3D;
+    const arms=Math.round(mp.arms||3),spin=mp.spin||1,flat=mp.flatness||1;
+    const r=Math.sqrt(px*px+pz*pz)+0.001,angle=Math.atan2(pz,px);
+    // 🌌 сжатие в диск
+    fy-=py*f3d*flat*0.4;
+    // 🌌 чёрная дыра: притяжение издалека + барьер вблизи → вечная спираль
+    const pull=-f3d*0.25/(r+0.2);
+    const barrier=f3d*0.008/(r*r*r+0.001);
+    const radial=pull+barrier;
+    fx+=(px/r)*radial;fz+=(pz/r)*radial;
+    // 🌌 орбитальное вращение — закрутка вокруг центра
+    const orb=f3d*spin*0.15/(r*0.4+0.3);
+    fx+=(-pz/r)*orb;fz+=(px/r)*orb;
+    // 🌌 спиральные рукава
+    const spiralA=angle-Math.log(r+0.3)*1.8+t*spin*0.3;
+    const armS=Math.cos(spiralA*arms)*0.5+0.5;
+    const radF=f3d*armS*0.03/(r+0.4);
+    fx+=(px/r)*radF;fz+=(pz/r)*radF;
+    // тач — возмущение рукавов
+    for(var p=0;p<pts.length;p++){var pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
+        var dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.05)continue;
+        var str=pt.strength||1,a=f3d*str*0.12/(dist+0.5);
+        fx+=dx/dist*a;fy+=dy/dist*a;fz+=dz/dist*a;}
+    return{fx,fy,fz};}
+
+// 🌌 Чёрная дыра — аккреционный диск, джеты, горизонт событий
+function getBlackholeForce3D(px,py,pz,pts,t){
+    let fx=0,fy=0,fz=0;const mp=modeParams.blackhole,f3d=vortexForce3D;
+    const flat=mp.diskFlat||1.5,jet=mp.jet||1,spin=mp.spin||1.2;
+    const r=Math.sqrt(px*px+pz*pz)+0.001;
+    const dist3d=Math.sqrt(px*px+py*py+pz*pz)+0.001;
+    // 🌌 притяжение к центру — гравитация чёрной дыры
+    const pull=-f3d*0.3/(dist3d*0.3+0.15);
+    // 🌌 барьер — горизонт событий, не пускает внутрь
+    const barrier=f3d*0.012/(dist3d*dist3d*dist3d+0.002);
+    const radial=pull+barrier;
+    fx+=(px/dist3d)*radial;fy+=(py/dist3d)*radial;fz+=(pz/dist3d)*radial;
+    // 🌌 сжатие в диск — плоскость XZ
+    fy-=py*f3d*flat*0.5;
+    // 🌌 орбитальное вращение в плоскости XZ
+    if(r>0.05){
+        const orb=f3d*spin*0.2/(r*0.4+0.3);
+        fx+=(-pz/r)*orb;fz+=(px/r)*orb;
+    }
+    // 🌌 джеты — частицы вблизи оси Y выстреливаются вверх/вниз
+    if(r<1.2&&jet>0){
+        const axisDist=r; // расстояние от оси Y
+        const jetStrength=f3d*jet*0.15*Math.exp(-axisDist*2);
+        const dir=py>0?1:-1; // вверх если выше центра, вниз если ниже
+        fy+=dir*jetStrength;
+        // лёгкое отталкивание от оси — джет расширяется
+        if(r>0.05){
+            fx+=(px/r)*jetStrength*0.15;
+            fz+=(pz/r)*jetStrength*0.15;
+        }
+    }
+    // тач — гравитационное возмущение
+    for(var p=0;p<pts.length;p++){var pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
+        var dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist<0.05)continue;
+        var str=pt.strength||1,a=f3d*str*0.12/(dist+0.5);
+        fx+=dx/dist*a;fy+=dy/dist*a;fz+=dz/dist*a;}
+    return{fx,fy,fz};}
+
+// 🧠 Нейросеть — нейроны дрейфуют, связи между ближайшими
+function getNeuralForce3D(px,py,pz,pts,t){
+    let fx=0,fy=0,fz=0;const mp=modeParams.neural,f3d=vortexForce3D;
+    const dist=Math.sqrt(px*px+py*py+pz*pz)+0.001;
+    // 🧠 пружина к центру — удержание в кубе
+    fx-=px*f3d*0.06;fy-=py*f3d*0.06;fz-=pz*f3d*0.06;
+    // 🧠 органический дрейф — нейроны живут
+    fx+=Math.sin(t*0.0004+pz*2+py)*f3d*0.04;
+    fy+=Math.cos(t*0.0005+px*2+pz)*f3d*0.04;
+    fz+=Math.sin(t*0.0003+py*2+px)*f3d*0.04;
+    // тач — импульс
+    for(var p=0;p<pts.length;p++){var pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
+        var dd=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dd<0.05)continue;
+        var str=pt.strength||1;
+        var imp=-f3d*str*(mp.impulse||1)*0.25/(dd*0.3+0.15);
+        fx+=dx/dd*imp;fy+=dy/dd*imp;fz+=dz/dd*imp;}
+    return{fx,fy,fz};}
+
+// 💎 Кристалл — частицы стремятся к узлам решётки
+function getCrystalForce3D(px,py,pz,pts,t){
+    let fx=0,fy=0,fz=0;const mp=modeParams.crystal,f3d=vortexForce3D;
+    const order=mp.order||1,growth=mp.growth||0.8;
+    const latticeType=Math.round(mp.lattice||0);
+    // 💎 определяем ближайший узел решётки
+    const spacing=1.2/growth; // расстояние между узлами
+    let snapX,snapY,snapZ;
+    if(latticeType===0){ // Куб
+        snapX=Math.round(px/spacing)*spacing;
+        snapY=Math.round(py/spacing)*spacing;
+        snapZ=Math.round(pz/spacing)*spacing;
+    }else if(latticeType===1){ // Гекс — гексагональная плотноупакованная
+        const row=Math.round(py/(spacing*0.866));
+        snapY=row*spacing*0.866;
+        const offset=(row%2)*spacing*0.5;
+        snapX=Math.round((px-offset)/spacing)*spacing+offset;
+        snapZ=Math.round(pz/spacing)*spacing;
+    }else{ // Алмаз — две вложенные FCC
+        const half=spacing*0.5;
+        const ix=Math.round(px/spacing),iy=Math.round(py/spacing),iz=Math.round(pz/spacing);
+        snapX=ix*spacing;snapY=iy*spacing;snapZ=iz*spacing;
+        // Проверяем ближайший из двух поднешёток
+        const altX=snapX+half,altY=snapY+half,altZ=snapZ+half;
+        const d1=(px-snapX)*(px-snapX)+(py-snapY)*(py-snapY)+(pz-snapZ)*(pz-snapZ);
+        const d2=(px-altX)*(px-altX)+(py-altY)*(py-altY)+(pz-altZ)*(pz-altZ);
+        if(d2<d1){snapX=altX;snapY=altY;snapZ=altZ;}
+    }
+    // 💎 притяжение к узлу решётки — мягкая кристаллизация
+    const dx=snapX-px,dy=snapY-py,dz=snapZ-pz;
+    const dd=Math.sqrt(dx*dx+dy*dy+dz*dz)+0.001;
+    const pullStr=f3d*order*0.06*Math.min(1,dd); // 🌿 плавно, не телепортация
+    fx+=dx/dd*pullStr;fy+=dy/dd*pullStr;fz+=dz/dd*pullStr;
+    // 💎 удержание в кубе
+    const dist=Math.sqrt(px*px+py*py+pz*pz)+0.001;
+    if(dist>3.5){const b=f3d*0.1*(dist-3.5);fx-=px/dist*b;fy-=py/dist*b;fz-=pz/dist*b;}
+    // тач — разрушение кристалла, отталкивание
+    for(var p=0;p<pts.length;p++){var pt=pts[p],tdx=pt.x-px,tdy=pt.y-py,tdz=pt.z-pz;
+        var td=Math.sqrt(tdx*tdx+tdy*tdy+tdz*tdz);if(td<0.05)continue;
+        var str=pt.strength||1;
+        // отталкивание — разбиваем кристалл
+        var push=-f3d*str*0.4/(td*0.2+0.2);
+        fx+=tdx/td*push;fy+=tdy/td*push;fz+=tdz/td*push;}
+    return{fx,fy,fz};}
+
+// ☄️ Звездопад — частицы пронзают пространство по прямым, тач = гравитационная линза
+function getMeteorForce3D(px,py,pz,pts,t){
+    let fx=0,fy=0,fz=0;const mp=modeParams.meteor,f3d=vortexForce3D;
+    const spd=mp.speed||1.5;
+    const dist=Math.sqrt(px*px+py*py+pz*pz)+0.001;
+    // ☄️ частицы летят «вниз-влево» (постоянная сила — метеорный поток)
+    fx-=f3d*spd*0.08;fy-=f3d*spd*0.12;fz-=f3d*spd*0.04;
+    // ☄️ респаун — улетевшие за границу возвращаются с другой стороны
+    // (обрабатывается ниже через позиции)
+    // ☄️ лёгкий хаос — траектории не идеально параллельные
+    fx+=Math.sin(t*0.001+py*3)*f3d*0.015;
+    fz+=Math.cos(t*0.001+px*3)*f3d*0.015;
+    // тач — гравитационная линза, искривление траекторий
+    for(var p=0;p<pts.length;p++){var pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
+        var dd=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dd<0.05)continue;
+        var str=pt.strength||1;
+        var pull=f3d*str*(mp.gravity||0.5)*0.3/(dd*0.2+0.15);
+        fx+=dx/dd*pull;fy+=dy/dd*pull;fz+=dz/dd*pull;}
+    return{fx,fy,fz};}
+
+// 🌫️ Туманность — плотное облако с яркими ядрами, тач рассеивает
+function getNebulaForce3D(px,py,pz,pts,t){
+    let fx=0,fy=0,fz=0;const mp=modeParams.nebula,f3d=vortexForce3D;
+    const dens=mp.density||1,pulse=mp.pulse||0.8,scatter=mp.scatter||1;
+    const dist=Math.sqrt(px*px+py*py+pz*pz)+0.001;
+    // 🌫️ притяжение к центру — облако удерживается гравитацией
+    const pull=-f3d*dens*0.12/(dist*0.3+0.2);
+    fx+=px/dist*pull;fy+=py/dist*pull;fz+=pz/dist*pull;
+    // 🌫️ дыхание — пульсация расширения-сжатия
+    const breath=Math.sin(t*0.0006*pulse)*f3d*0.04*dens;
+    fx+=px/dist*breath;fy+=py/dist*breath;fz+=pz/dist*breath;
+    // 🌫️ мягкая турбулентность — облако не статично, оно клубится
+    fx+=Math.sin(t*0.0003+pz*1.5+py)*f3d*0.025;
+    fy+=Math.cos(t*0.0004+px*1.5+pz)*f3d*0.025;
+    fz+=Math.sin(t*0.0005+py*1.5+px)*f3d*0.025;
+    // тач — рассеяние (отталкивание), обнажает яркие ядра
+    for(var p=0;p<pts.length;p++){var pt=pts[p],dx=pt.x-px,dy=pt.y-py,dz=pt.z-pz;
+        var dd=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dd<0.05)continue;
+        var str=pt.strength||1;
+        var push=-f3d*str*scatter*0.35/(dd*0.2+0.15);
+        fx+=dx/dd*push;fy+=dy/dd*push;fz+=dz/dd*push;}
+    return{fx,fy,fz};}
+
 // 🌿 диспетчер — направляет поток к нужному инструменту
 function getForce3D(px,py,pz,pts,mode,t){
     if(mode==='vortex')return getVortexForce3D(px,py,pz,pts);
@@ -415,6 +592,12 @@ function getForce3D(px,py,pz,pts,mode,t){
     if(mode==='lorenz')return getLorenzForce3D(px,py,pz,pts,t);
     if(mode==='mycelium')return getMyceliumForce3D(px,py,pz,pts,t);
     if(mode==='breathing')return getBreathingForce3D(px,py,pz,pts,t);
+    if(mode==='galaxy')return getGalaxyForce3D(px,py,pz,pts,t);
+    if(mode==='blackhole')return getBlackholeForce3D(px,py,pz,pts,t);
+    if(mode==='neural')return getNeuralForce3D(px,py,pz,pts,t);
+    if(mode==='crystal')return getCrystalForce3D(px,py,pz,pts,t);
+    if(mode==='meteor')return getMeteorForce3D(px,py,pz,pts,t);
+    if(mode==='nebula')return getNebulaForce3D(px,py,pz,pts,t);
     if(mode==='mandala')return getMandalaForce3D(px,py,pz,pts,t);
     return getVortexForce3D(px,py,pz,pts);}
 
@@ -519,7 +702,7 @@ function updatePhysics3D(dt){
         pts.push({x:Math.sin(t)*2,y:Math.cos(t*0.7)*2,z:0,strength:e*2});
         if(musicBands.bass>0.3)pts.push({x:0,y:0,z:0,strength:musicBands.bass*3});
     }
-    const active=pts.length>0;
+    const active=pts.length>0||(testMode3D==='galaxy')||(testMode3D==='blackhole')||(testMode3D==='neural')||(testMode3D==='crystal')||(testMode3D==='meteor')||(testMode3D==='nebula');
     for(let i=0;i<total3D;i++){
         const i3=i*3,px=positions3D[i3],py=positions3D[i3+1],pz=positions3D[i3+2];
         if(active){
@@ -530,6 +713,16 @@ function updatePhysics3D(dt){
             const sp=Math.sqrt(velocities3D[i3]**2+velocities3D[i3+1]**2+velocities3D[i3+2]**2);
             if(sp>maxSpeed3D){const sc=maxSpeed3D/sp;velocities3D[i3]*=sc;velocities3D[i3+1]*=sc;velocities3D[i3+2]*=sc;}
             positions3D[i3]+=velocities3D[i3]*dt60;positions3D[i3+1]+=velocities3D[i3+1]*dt60;positions3D[i3+2]+=velocities3D[i3+2]*dt60;
+            // ☄️ Звездопад — респаун улетевших частиц
+            if(testMode3D==='meteor'){
+                const bound=4;
+                if(positions3D[i3]<-bound||positions3D[i3+1]<-bound||positions3D[i3+2]<-bound){
+                    positions3D[i3]=(Math.random()-0.3)*bound*2;
+                    positions3D[i3+1]=bound*(0.5+Math.random()*0.5);
+                    positions3D[i3+2]=(Math.random()-0.5)*bound;
+                    velocities3D[i3]=0;velocities3D[i3+1]=0;velocities3D[i3+2]=0;
+                }
+            }
         }else{
             const dx=homePositions3D[i3]-px,dy=homePositions3D[i3+1]-py,dz=homePositions3D[i3+2]-pz;
             const d=Math.sqrt(dx*dx+dy*dy+dz*dz);
@@ -549,13 +742,52 @@ function render3DScene(dt){
     controls3D.update();
     if(points3DMesh){points3DMesh.material.opacity=brightness3D;points3DMesh.material.size=particleSize3D;}
     if(stars3D){stars3D.rotation.y+=dt*0.03;stars3D.rotation.x+=dt*0.01;}
+    // 🧠 Нейросеть — линии связей между ближайшими нейронами
+    if(testMode3D==='neural'&&points3DMesh){
+        if(!scene3D.userData.neuralLines){
+            const lMat=new THREE.LineBasicMaterial({color:0xaa88ee,transparent:true,opacity:0.25,depthTest:false});
+            const lGeo=new THREE.BufferGeometry();
+            const maxSegs=2000;
+            lGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(maxSegs*6),3));
+            lGeo.setDrawRange(0,0);
+            const lines=new THREE.LineSegments(lGeo,lMat);
+            scene3D.add(lines);
+            scene3D.userData.neuralLines=lines;
+        }
+        const lines=scene3D.userData.neuralLines;
+        const pos3=points3DMesh.geometry.attributes.position.array;
+        const lpos=lines.geometry.attributes.position.array;
+        const mp=modeParams.neural,connR=mp.connectivity||1.2;
+        const threshold=connR*1.5;
+        let segIdx=0,maxSegs=2000;
+        // Проверяем каждую 8-ю пару для производительности
+        const N=particleCount3D,step=Math.max(1,Math.floor(N/200));
+        for(let i=0;i<N&&segIdx<maxSegs;i+=step){
+            const ax=pos3[i*3],ay=pos3[i*3+1],az=pos3[i*3+2];
+            for(let j=i+step;j<N&&segIdx<maxSegs;j+=step){
+                const dx=pos3[j*3]-ax,dy=pos3[j*3+1]-ay,dz=pos3[j*3+2]-az;
+                const d=dx*dx+dy*dy+dz*dz;
+                if(d<threshold*threshold){
+                    lpos[segIdx*6]=ax;lpos[segIdx*6+1]=ay;lpos[segIdx*6+2]=az;
+                    lpos[segIdx*6+3]=pos3[j*3];lpos[segIdx*6+4]=pos3[j*3+1];lpos[segIdx*6+5]=pos3[j*3+2];
+                    segIdx++;
+                }
+            }
+        }
+        lines.geometry.setDrawRange(0,segIdx*2);
+        lines.geometry.attributes.position.needsUpdate=true;
+        lines.visible=true;
+    }else if(scene3D.userData.neuralLines){
+        scene3D.userData.neuralLines.visible=false;
+    }
+
     renderer3D.render(scene3D,camera3D);
 }
 function switchToTest(){
     const cv=document.getElementById('threeCanvas');
     document.getElementById('glCanvas').classList.add('hidden');
     document.getElementById('c2dCanvas').classList.add('hidden');
-    document.getElementById('wireCanvas').style.display='none';
+    const wc=document.getElementById('wireCanvas');if(wc)wc.style.display='none';
     cv.classList.remove('hidden');cv.style.display='block';
     if(threeReady){renderer3D.setSize(W,H);camera3D.aspect=W/H;camera3D.updateProjectionMatrix();update3DColors();}
     else{loadThreeJS(function(){init3DScene();renderer3D.setSize(W,H);camera3D.aspect=W/H;camera3D.updateProjectionMatrix();update3DColors();});}
