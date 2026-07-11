@@ -1003,7 +1003,7 @@ if(gl){glCanvas.addEventListener('webglcontextlost',function(e){e.preventDefault
 
 let GAP,W,H,COLS,ROWS,TOTAL,homeX,homeY,posX,posY,velX,velY,hue,glPositions,colorCache=null;
 // 🌿 Профили устройств: mobile ≤500, tablet 501-1024, desktop >1024
-const deviceProfiles={mobile:{pointScale:0.8,gapMult:1,fadeMult:0.7,brightMult:1.3},tablet:{pointScale:0.85,gapMult:1,fadeMult:0.85,brightMult:1.15},desktop:{pointScale:1,gapMult:1,fadeMult:1,brightMult:1}};
+const deviceProfiles={mobile:{pointScale:1.0,gapMult:1,fadeMult:0.55,brightMult:1.5},tablet:{pointScale:0.9,gapMult:1,fadeMult:0.7,brightMult:1.3},desktop:{pointScale:1,gapMult:1,fadeMult:1,brightMult:1}};
 let currentProfile='desktop',mobileScale=1,fadeMult=1,brightMult=1;
 function detectProfile(){const sw=Math.min(screen.width||9999,screen.height||9999);if(sw<=500)return'mobile';if(sw<=1024)return'tablet';return'desktop';}
 function applyProfile(){currentProfile=detectProfile();const p=deviceProfiles[currentProfile];mobileScale=p.pointScale;fadeMult=p.fadeMult;brightMult=p.brightMult;}
