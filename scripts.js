@@ -1002,13 +1002,9 @@ function initGPU(){if(!gl)return false;program=mkProgram(mkShader(gl.VERTEX_SHAD
 if(gl){glCanvas.addEventListener('webglcontextlost',function(e){e.preventDefault();contextLost=true;cancelAnimationFrame(animFrame);useWebGL=false;glCanvas.classList.add('hidden');c2dCanvas.classList.remove('hidden');ctx2d=c2dCanvas.getContext('2d');c2dCanvas.width=W;c2dCanvas.height=H;contextLost=false;lastTime=performance.now();animFrame=requestAnimationFrame(loop);});glCanvas.addEventListener('webglcontextrestored',function(){if(initGPU()){useWebGL=true;c2dCanvas.classList.add('hidden');glCanvas.classList.remove('hidden');gl.viewport(0,0,W,H);if(hue){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}contextLost=false;}});}
 
 let GAP,W,H,COLS,ROWS,TOTAL,homeX,homeY,posX,posY,velX,velY,hue,glPositions,colorCache=null;
-// 🌿 Профили устройств: mobile ≤500, tablet 501-1024, desktop >1024
-const deviceProfiles={mobile:{pointScale:1.0,gapMult:1,fadeMult:0.55,brightMult:1.5},tablet:{pointScale:0.9,gapMult:1,fadeMult:0.7,brightMult:1.3},desktop:{pointScale:1,gapMult:1,fadeMult:1,brightMult:1}};
-let currentProfile='desktop',mobileScale=1,fadeMult=1,brightMult=1;
-function detectProfile(){const sw=Math.min(screen.width||9999,screen.height||9999);if(sw<=500)return'mobile';if(sw<=1024)return'tablet';return'desktop';}
-function applyProfile(){currentProfile=detectProfile();const p=deviceProfiles[currentProfile];mobileScale=p.pointScale;fadeMult=p.fadeMult;brightMult=p.brightMult;}
-function resizeCanvas(){const nw=window.innerWidth,nh=window.innerHeight;if(nw===W&&nh===H)return;W=nw;H=nh;if(useWebGL){if(glCanvas.width!==W||glCanvas.height!==H){glCanvas.width=W;glCanvas.height=H;}if(gl)gl.viewport(0,0,W,H);}else{if(c2dCanvas.width!==W||c2dCanvas.height!==H){c2dCanvas.width=W;c2dCanvas.height=H;}}}
-function init(){const _savedMode=typeof currentMode!=='undefined'?currentMode:null;const _savedScene=typeof currentScene!=='undefined'?currentScene:null;const _savedDim=typeof dimension!=='undefined'?dimension:null;applyProfile();GAP=userGap*deviceProfiles[currentProfile].gapMult;W=0;H=0;resizeCanvas();COLS=Math.ceil(W/GAP);ROWS=Math.ceil(H/GAP);TOTAL=COLS*ROWS;homeX=new Float32Array(TOTAL);homeY=new Float32Array(TOTAL);posX=new Float32Array(TOTAL);posY=new Float32Array(TOTAL);velX=new Float32Array(TOTAL);velY=new Float32Array(TOTAL);hue=new Float32Array(TOTAL);glPositions=new Float32Array(TOTAL*2);sTheta=new Float32Array(TOTAL);sPhi=new Float32Array(TOTAL);const cc=(COLS-1)/2,cr=(ROWS-1)/2,md=Math.sqrt(cc*cc+cr*cr);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;homeX[i]=c*GAP;homeY[i]=r*GAP;posX[i]=homeX[i];posY[i]=homeY[i];const dx=c-cc,dy=r-cr,dist=Math.sqrt(dx*dx+dy*dy);const proj=md>0?(dx*.7071+dy*.7071)/md:0,dr=md>0?dist/md:0;hue[i]=1/(1+Math.exp(-(2+dr*4)*proj));sTheta[i]=Math.PI*(r/(ROWS-1));sPhi[i]=2*Math.PI*c/COLS;}if(useWebGL&&gl){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}colorCache=new Uint8Array(TOTAL*3);sDTheta=new Float32Array(TOTAL);sDPhi=new Float32Array(TOTAL);trailLayerBuf=new Float32Array(TOTAL*2);if(_savedMode)currentMode=_savedMode;if(_savedScene)currentScene=_savedScene;if(_savedDim!==null)dimension=_savedDim;}
+let mobileScale=1;
+function resizeCanvas(){W=window.innerWidth;H=window.innerHeight;mobileScale=Math.min(W,H)<500?Math.min(W,H)/500:1;if(useWebGL){glCanvas.width=W;glCanvas.height=H;if(gl)gl.viewport(0,0,W,H);}else{c2dCanvas.width=W;c2dCanvas.height=H;}}
+function init(){GAP=userGap;resizeCanvas();COLS=Math.ceil(W/GAP);ROWS=Math.ceil(H/GAP);TOTAL=COLS*ROWS;homeX=new Float32Array(TOTAL);homeY=new Float32Array(TOTAL);posX=new Float32Array(TOTAL);posY=new Float32Array(TOTAL);velX=new Float32Array(TOTAL);velY=new Float32Array(TOTAL);hue=new Float32Array(TOTAL);glPositions=new Float32Array(TOTAL*2);sTheta=new Float32Array(TOTAL);sPhi=new Float32Array(TOTAL);const cc=(COLS-1)/2,cr=(ROWS-1)/2,md=Math.sqrt(cc*cc+cr*cr);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;homeX[i]=c*GAP;homeY[i]=r*GAP;posX[i]=homeX[i];posY[i]=homeY[i];const dx=c-cc,dy=r-cr,dist=Math.sqrt(dx*dx+dy*dy);const proj=md>0?(dx*.7071+dy*.7071)/md:0,dr=md>0?dist/md:0;hue[i]=1/(1+Math.exp(-(2+dr*4)*proj));sTheta[i]=Math.PI*(r/(ROWS-1));sPhi[i]=2*Math.PI*c/COLS;}if(useWebGL&&gl){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}colorCache=new Uint8Array(TOTAL*3);sDTheta=new Float32Array(TOTAL);sDPhi=new Float32Array(TOTAL);trailLayerBuf=new Float32Array(TOTAL*2);}
 
 // Three.js 3D scene → scene3d.js
 
@@ -1394,7 +1390,7 @@ for(let i=0;i<TOTAL;i++){const px=posX[i],py=posY[i];if(isActive){const force=ge
 }}
 }// end dimension check
 
-function drawParticles(positions,o){gl.useProgram(program);gl.uniform2f(uResolution,W,H);gl.uniform1fv(uStopH,shaderH);gl.uniform1fv(uStopS,shaderS);gl.uniform1fv(uStopV,shaderV);gl.uniform1f(uAlpha,(o.alpha||1)*brightnessLevel*brightMult);gl.uniform3f(uColorMask,o.r!==undefined?o.r:1,o.g!==undefined?o.g:1,o.b!==undefined?o.b:1);gl.uniform1f(uRotation,o.rotation||0);gl.uniform1f(uScale,(o.scale||1)*zoomLevel);gl.uniform2f(uOffset,o.ox||0,o.oy||0);gl.uniform1f(uPointScale,(o.pointScale||1)*zoomLevel*mobileScale);gl.uniform1f(uSphereMode,o.sphereMode||0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,positions,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.enableVertexAttribArray(aHue);gl.vertexAttribPointer(aHue,1,gl.FLOAT,false,0,0);gl.drawArrays(gl.POINTS,0,TOTAL);}
+function drawParticles(positions,o){gl.useProgram(program);gl.uniform2f(uResolution,W,H);gl.uniform1fv(uStopH,shaderH);gl.uniform1fv(uStopS,shaderS);gl.uniform1fv(uStopV,shaderV);gl.uniform1f(uAlpha,(o.alpha||1)*brightnessLevel);gl.uniform3f(uColorMask,o.r!==undefined?o.r:1,o.g!==undefined?o.g:1,o.b!==undefined?o.b:1);gl.uniform1f(uRotation,o.rotation||0);gl.uniform1f(uScale,(o.scale||1)*zoomLevel);gl.uniform2f(uOffset,o.ox||0,o.oy||0);gl.uniform1f(uPointScale,(o.pointScale||1)*zoomLevel*mobileScale);gl.uniform1f(uSphereMode,o.sphereMode||0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,positions,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.enableVertexAttribArray(aHue);gl.vertexAttribPointer(aHue,1,gl.FLOAT,false,0,0);gl.drawArrays(gl.POINTS,0,TOTAL);}
 // 🌿 рисуем частицы с учётом мандалы (секторное зеркало)
 function renderWithMode(positions,baseAlpha){
 if(currentMode==='mandala'){const mp=modeParams.mandala;const sectors=Math.round(mp.sectors);const baseRot=time*.0003*spinDirection*(mp.mandalaSpin||1);for(let k=0;k<sectors;k++){const r=baseRot+k*Math.PI*2/sectors;drawParticles(positions,{rotation:r,alpha:baseAlpha*Math.max(.15,1-k*(1/(sectors+2))),scale:1});}}
@@ -1406,7 +1402,7 @@ if(trailMode){
 // 🌿 dim-quad — предыдущий кадр угасает, оставляя световой след
 gl.useProgram(quadProgram);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
 gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);gl.enableVertexAttribArray(aQuadPos);gl.vertexAttribPointer(aQuadPos,2,gl.FLOAT,false,0,0);
-gl.uniform1f(uDim,trailFade*fadeMult);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+gl.uniform1f(uDim,trailFade);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
 // 🌿 temporal ghost layers — призраки из прошлых мгновений
 if(trailLayers>0&&trailLayerBuf){for(let layer=trailLayers;layer>=1;layer--){
 for(let i=0;i<TOTAL;i++){trailLayerBuf[i*2]=posX[i]-velX[i]*layer*trailSpread;trailLayerBuf[i*2+1]=posY[i]-velY[i]*layer*trailSpread;}
@@ -1417,24 +1413,21 @@ function render2D(){if(!ctx2d)return;const imgData=ctx2d.createImageData(W,H),da
 function render(){if(useWebGL&&gl&&!contextLost)renderGL();else render2D();}
 let lastTime=performance.now(),animFrame;
 function loop(ts){const dt=Math.min(.1,(ts-lastTime)/1000);lastTime=ts;if(dimension===3&&threeReady){time+=dt*1000*spinSpeed;render3DScene(dt);}else{update(dt);render();}if(classicVisOn)drawClassicAnalyzer();if(window._updateHoneycomb)window._updateHoneycomb(ts);if(window._updateFibers)window._updateFibers();animFrame=requestAnimationFrame(loop);}
-let _resizeTimer=null;
+let _resizeTimer=null,_lastW=0,_lastH=0;
 window.addEventListener('resize',()=>{
     clearTimeout(_resizeTimer);
     _resizeTimer=setTimeout(()=>{
         const nw=window.innerWidth,nh=window.innerHeight;
-        if(nw===W&&nh===H)return;
-        const newProfile=detectProfile();
-        if(newProfile!==currentProfile){
-            cancelAnimationFrame(animFrame);init();lastTime=performance.now();animFrame=requestAnimationFrame(loop);
-        }else{
-            resizeCanvas();
-        }
+        const dw=Math.abs(nw-_lastW),dh=Math.abs(nh-_lastH);
+        if(dw<2&&dh<100)return;
+        _lastW=nw;_lastH=nh;
+        resizeCanvas();
         if(dimension===3&&threeReady){renderer3D.setSize(W,H);camera3D.aspect=W/H;camera3D.updateProjectionMatrix();}
         if(dimension===4&&gl){gl.viewport(0,0,W,H);}
     },200);
 });
 const initNorm=normalizeStops(currentStops);for(let i=0;i<9;i++){shaderH[i]=initNorm[i].h;shaderS[i]=initNorm[i].s;shaderV[i]=initNorm[i].v;}
-if(useWebGL)initGPU();init();render();animFrame=requestAnimationFrame(loop);
+if(useWebGL)initGPU();init();_lastW=W;_lastH=H;render();animFrame=requestAnimationFrame(loop);
 enhanceSliders();applyPlan();
 // #19 haptic feedback
 function haptic(ms){try{if(navigator.vibrate)navigator.vibrate(ms||10);}catch(e){}}
@@ -1917,357 +1910,4 @@ if(dlcBS)onTap(dlcBS,function(e){e.stopPropagation();dlcBeats=!dlcBeats;dlcBS.cl
         if(prevActive&&!active&&fCanvas)fCanvas.style.display='none';
         prevActive=active;
     },300);
-})();
-
-// ====== 🌿 РАДИАЛЬНОЕ МЕНЮ (мобилка) ======
-(function(){
-if(!document.getElementById('radialMenu'))return; // нет контейнера
-const RM=document.getElementById('radialMenu');
-if(!RM)return;
-// Блокируем проваливание тач-событий на canvas
-RM.addEventListener('touchstart',function(e){e.stopPropagation();},{passive:true});
-RM.addEventListener('touchmove',function(e){e.stopPropagation();},{passive:true});
-RM.addEventListener('touchend',function(e){e.stopPropagation();},{passive:true});
-RM.addEventListener('pointerdown',function(e){e.stopPropagation();});
-RM.addEventListener('pointermove',function(e){e.stopPropagation();});
-RM.addEventListener('pointerup',function(e){e.stopPropagation();});
-const grip=document.getElementById('radialGrip');
-const ringsEl=document.getElementById('radialRings');
-const bgSvg=document.getElementById('radialBg');
-let rmOpen=false;
-
-const CX=250,CY=260;
-const R1=55,R2=115,R3=180;
-const RING_W=38;
-
-// SVG фон — концентрические полудуги
-function arcBand(ri,ro){
-    const a1=Math.PI*0.02,a2=Math.PI*0.98;
-    const x1o=CX+Math.cos(a1)*ro,y1o=CY-Math.sin(a1)*ro;
-    const x2o=CX+Math.cos(a2)*ro,y2o=CY-Math.sin(a2)*ro;
-    const x1i=CX+Math.cos(a2)*ri,y1i=CY-Math.sin(a2)*ri;
-    const x2i=CX+Math.cos(a1)*ri,y2i=CY-Math.sin(a1)*ri;
-    return'M'+x1o+','+y1o+' A'+ro+','+ro+' 0 0,0 '+x2o+','+y2o+' L'+x1i+','+y1i+' A'+ri+','+ri+' 0 0,1 '+x2i+','+y2i+' Z';
-}
-bgSvg.innerHTML='<path d="'+arcBand(R1-RING_W/2,R1+RING_W/2)+'" fill="rgba(8,8,16,0.88)"/>'
-    +'<path d="'+arcBand(R2-RING_W/2,R2+RING_W/2)+'" fill="rgba(8,8,16,0.84)"/>'
-    +'<path d="'+arcBand(R3-RING_W/2,R3+RING_W/2)+'" fill="rgba(8,8,16,0.80)"/>';
-
-// Позиция на дуге
-function aPos(angle,r){return{x:CX+Math.cos(angle)*r,y:CY-Math.sin(angle)*r};}
-
-// === ДАННЫЕ ===
-const r1Items=[
-    {key:'dmode',label:'Режим',icon:'<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/>'},
-    {key:'tools',label:'Инструм.',icon:null}, // берём из modeIcons.vortex
-    {key:'palette',label:'Палитра',icon:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="8" r="1.5" fill="currentColor" stroke="none"/><circle cx="8" cy="14" r="1.5" fill="currentColor" stroke="none"/><circle cx="16" cy="14" r="1.5" fill="currentColor" stroke="none"/>'},
-    {key:'settings',label:'Настройки',icon:'<circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'},
-    {key:'music',label:'Музыка',icon:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'},
-    {key:'profile',label:'Профиль',icon:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'}
-];
-
-// Состояние
-let r1Idx=0,r2Idx={},r3Idx={};
-r1Items.forEach(function(it){r2Idx[it.key]=0;});
-r3Idx['2d']=0;r3Idx['3d']=0;r3Idx['music_tracks']=0;
-
-// Ring 2 данные
-function getR2Items(key){
-    if(key==='dmode')return[{key:'2d',label:'2D'},{key:'3d',label:'3D'},{key:'4d',label:'4D',locked:true},{key:'5d',label:'5D',locked:true}];
-    if(key==='tools')return modes.map(function(m){return{key:m.key,icon:modeIcons[m.key]};});
-    if(key==='palette'){
-        var items=Object.keys(palettes).map(function(k){return{key:k,bg:palettes[k].swatch};});
-        items.push({key:'surprise',bg:'radial-gradient(circle,#fff,#a855f7,#000)',label:'?'});
-        return items;
-    }
-    if(key==='settings')return[
-        {key:'speed',label:'Скорость'},{key:'scale',label:'Масштаб'},
-        {key:'bright',label:'Яркость'},{key:'density',label:'Плотность'},
-        {key:'force',label:'Сила'},{key:'decay',label:'Затухание'}
-    ];
-    if(key==='music')return[
-        {key:'prev',label:'⏮'},{key:'play',label:'▶'},{key:'next',label:'⏭'},{key:'vol',label:'🔊'}
-    ];
-    if(key==='profile')return[
-        {key:'account',label:'Аккаунт'},{key:'plans',label:'Тарифы'},{key:'about',label:'О прилож.'}
-    ];
-    return[];
-}
-function getR3Items(r1Key,r2Key){
-    if(r1Key==='dmode'&&r2Key==='2d')return[
-        {key:'0',label:'▬'},{key:'1',label:'◯'},{key:'2',label:'◻'},
-        {key:'3',label:'△'},{key:'4',label:'◎'},{key:'deform',label:'〰'}
-    ];
-    if(r1Key==='dmode'&&r2Key==='3d')return[
-        {key:'0',label:'◻'},{key:'1',label:'◯'}
-    ];
-    if(r1Key==='music')return bgmTracks.map(function(t,i){return{key:'t'+i,label:t.title};});
-    if(r1Key==='settings')return[{key:'slider'}]; // special: arc slider
-    return null;
-}
-
-// === РЕНДЕР КОЛЬЦА ===
-function renderRing(items,radius,offset,activeIdx,opts){
-    var html='';
-    var count=items.length;
-    var vis=Math.min(opts.vis||7,count);
-    var span=opts.span||0.7;
-    var step=span*Math.PI/Math.max(vis-1,1);
-    var startA=(Math.PI-span*Math.PI)/2;
-    var sz=opts.sz||16;
-    for(var vi=0;vi<vis;vi++){
-        var idx=((Math.round(offset)+vi)%count+count)%count;
-        var angle=startA+vi*step;
-        var p=aPos(angle,radius);
-        var isAct=idx===activeIdx;
-        var cls='re'+(isAct?' act':'');
-        var item=items[idx];
-        if(item.locked)cls+=' locked';
-        if(opts.type==='palette'){
-            html+='<div class="pal-dot'+(isAct?' act':'')+'" style="position:absolute;left:'+(p.x-10)+'px;top:'+(p.y-10)+'px;background:'+item.bg+';" data-ridx="'+idx+'">'+(item.label||'')+'</div>';
-        }else if(opts.type==='text'){
-            html+='<div class="'+cls+'" style="position:absolute;left:'+(p.x-28)+'px;top:'+(p.y-8)+'px;" data-ridx="'+idx+'"><span class="re-lb" style="font-size:'+(opts.fontSize||9)+'px;">'+item.label+'</span></div>';
-        }else if(item.icon&&item.icon.indexOf('<svg')===0){
-            // Full SVG from modeIcons (already has <svg> wrapper)
-            var svgMod=item.icon.replace(/width="[^"]*"/,'width="'+sz+'"').replace(/height="[^"]*"/,'height="'+sz+'"');
-            if(isAct)svgMod=svgMod.replace('color:rgba','XXX').replace('currentColor','rgba(255,255,255,0.85)');
-            html+='<div class="'+cls+'" style="position:absolute;left:'+(p.x-sz/2)+'px;top:'+(p.y-sz/2-(opts.showLabel?7:0))+'px;" data-ridx="'+idx+'">'+svgMod+(opts.showLabel&&item.label?'<span class="re-lb">'+item.label+'</span>':'')+'</div>';
-        }else{
-            var iconSvg=item.icon?'<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">'+item.icon+'</svg>':'';
-            html+='<div class="'+cls+'" style="position:absolute;left:'+(p.x-sz/2)+'px;top:'+(p.y-sz/2-(opts.showLabel?7:0))+'px;" data-ridx="'+idx+'">'+iconSvg+(opts.showLabel&&item.label?'<span class="re-lb">'+item.label+'</span>':'')+'</div>';
-        }
-    }
-    // Навигационные стрелки
-    if(count>vis){
-        var lp=aPos(startA-0.12,radius),rp=aPos(startA+vis*step-step+0.12,radius);
-        html+='<div class="nav-ring navL" style="left:'+(lp.x-11)+'px;top:'+(lp.y-11)+'px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg></div>';
-        html+='<div class="nav-ring navR" style="left:'+(rp.x-11)+'px;top:'+(rp.y-11)+'px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg></div>';
-    }
-    return html;
-}
-
-function renderArcSlider(r1Key,settingKey){
-    var defs=[
-        {key:'speed',label:'Скорость',v:Math.round(spinSpeed*100),mn:0,mx:200},
-        {key:'scale',label:'Масштаб',v:Math.round(zoomLevel*100),mn:30,mx:100},
-        {key:'bright',label:'Яркость',v:Math.round(brightnessLevel*100),mn:20,mx:200},
-        {key:'density',label:'Плотность',v:userGap,mn:1,mx:5},
-        {key:'force',label:'Сила',v:50,mn:1,mx:100},
-        {key:'decay',label:'Затухание',v:50,mn:1,mx:100}
-    ];
-    var param=defs.find(function(d){return d.key===settingKey;})||defs[0];
-    var r=R3;
-    var a1=Math.PI*0.82,a2=Math.PI*0.18;
-    var t=Math.max(0,Math.min(1,(param.v-param.mn)/(param.mx-param.mn)));
-    var aFill=a1+(a2-a1)*t;
-    function mkArc(sa,ea){
-        var x1=CX+Math.cos(sa)*r,y1=CY-Math.sin(sa)*r;
-        var x2=CX+Math.cos(ea)*r,y2=CY-Math.sin(ea)*r;
-        return'M'+x1+','+y1+' A'+r+','+r+' 0 0,0 '+x2+','+y2;
-    }
-    var tp=aPos(aFill,r);
-    var html='<svg class="arc-sv" viewBox="0 0 500 260" style="position:absolute;left:0;top:0;width:500px;height:260px;overflow:visible;pointer-events:none;">';
-    html+='<path d="'+mkArc(a1,a2)+'" class="arc-track"/>';
-    html+='<path d="'+mkArc(a1,aFill)+'" class="arc-fill"/>';
-    html+='<circle cx="'+tp.x+'" cy="'+tp.y+'" r="8" class="arc-thumb" id="rmThumb"/>';
-    html+='</svg>';
-    html+='<div class="arc-label" style="left:'+(CX-25)+'px;top:'+(CY-R3-18)+'px;width:50px;text-align:center;">'+param.label+'</div>';
-    html+='<div class="arc-val" id="rmSlVal" style="left:'+(CX-15)+'px;top:'+(CY-R3+15)+'px;width:30px;text-align:center;">'+param.v+'</div>';
-    return html;
-}
-
-// === ПОЛНЫЙ РЕНДЕР ===
-function renderAll(){
-    var html='';
-    // Ring 1
-    var r1Mid=Math.floor(Math.min(5,r1Items.length)/2);
-    var r1ActualActive=((r1Idx+r1Mid)%r1Items.length+r1Items.length)%r1Items.length;
-    html+='<div id="rmR1">'+renderRing(r1Items,R1,r1Idx,r1ActualActive,{sz:16,span:0.55,vis:5,showLabel:true})+'</div>';
-
-    // Ring 2
-    var r1Key=r1Items[r1ActualActive].key;
-    var r2Items=getR2Items(r1Key);
-    var r2Off=r2Idx[r1Key]||0;
-    var r2Vis=Math.min(r2Items.length,7);
-    var r2Mid=Math.floor(r2Vis/2);
-    var r2ActualActive=((r2Off+r2Mid)%r2Items.length+r2Items.length)%r2Items.length;
-    var r2Type=r1Key==='palette'?'palette':(r1Key==='settings'||r1Key==='music'||r1Key==='profile')?'text':'';
-    if(r1Key==='tools'){
-        html+='<div id="rmR2">'+renderRing(r2Items,R2,r2Off,r2ActualActive,{sz:18,span:0.65,vis:r2Vis})+'</div>';
-    }else{
-        html+='<div id="rmR2">'+renderRing(r2Items,R2,r2Off,r2ActualActive,{sz:16,span:0.6,vis:r2Vis,type:r2Type,showLabel:r1Key==='dmode',fontSize:r1Key==='music'?14:9})+'</div>';
-    }
-
-    // Ring 3
-    var r2Key=r2Items[r2ActualActive]?r2Items[r2ActualActive].key:'';
-    var r3Items=getR3Items(r1Key,r2Key);
-    if(r3Items&&r3Items[0]&&r3Items[0].key==='slider'){
-        html+='<div id="rmR3">'+renderArcSlider(r1Key,r2Key)+'</div>';
-    }else if(r3Items&&r3Items.length>0){
-        var r3K=r1Key+'_'+r2Key;
-        if(!r3Idx[r3K])r3Idx[r3K]=0;
-        var r3Off=r3Idx[r3K];
-        var r3Vis=Math.min(r3Items.length,7);
-        var r3Mid2=Math.floor(r3Vis/2);
-        var r3ActualActive=((r3Off+r3Mid2)%r3Items.length+r3Items.length)%r3Items.length;
-        html+='<div id="rmR3">'+renderRing(r3Items,R3,r3Off,r3ActualActive,{sz:14,span:0.7,vis:r3Vis,type:'text',fontSize:8})+'</div>';
-    }else{
-        html+='<div id="rmR3"></div>';
-    }
-
-    ringsEl.innerHTML=html;
-    bindEvents(r1ActualActive,r1Key,r2Items,r2ActualActive,r2Key,r3Items);
-}
-
-// === ПРИВЯЗКА СОБЫТИЙ ===
-function bindEvents(r1Act,r1Key,r2Items,r2Act,r2Key,r3Items){
-    // Ring 1 навигация
-    var r1El=document.getElementById('rmR1');
-    if(r1El){
-        r1El.querySelectorAll('.navL').forEach(function(b){b.onclick=function(){r1Idx=((r1Idx-1)%r1Items.length+r1Items.length)%r1Items.length;renderAll();applyRadialState();};});
-        r1El.querySelectorAll('.navR').forEach(function(b){b.onclick=function(){r1Idx=(r1Idx+1)%r1Items.length;renderAll();applyRadialState();};});
-        r1El.querySelectorAll('.re').forEach(function(el){el.onclick=function(){
-            var idx=+el.dataset.ridx;
-            var mid=Math.floor(Math.min(5,r1Items.length)/2);
-            r1Idx=((idx-mid)%r1Items.length+r1Items.length)%r1Items.length;
-            renderAll();applyRadialState();
-        };});
-    }
-    // Ring 2 навигация
-    var r2El=document.getElementById('rmR2');
-    if(r2El){
-        r2El.querySelectorAll('.navL').forEach(function(b){b.onclick=function(){r2Idx[r1Key]=((r2Idx[r1Key]-1)%r2Items.length+r2Items.length)%r2Items.length;renderAll();applyRadialState();};});
-        r2El.querySelectorAll('.navR').forEach(function(b){b.onclick=function(){r2Idx[r1Key]=(r2Idx[r1Key]+1)%r2Items.length;renderAll();applyRadialState();};});
-        r2El.querySelectorAll('.re,.pal-dot').forEach(function(el){el.onclick=function(){
-            var idx=+el.dataset.ridx;
-            var vis=Math.min(r2Items.length,7);
-            var mid=Math.floor(vis/2);
-            r2Idx[r1Key]=((idx-mid)%r2Items.length+r2Items.length)%r2Items.length;
-            renderAll();applyRadialState();
-        };});
-    }
-    // Ring 3 навигация
-    var r3El=document.getElementById('rmR3');
-    if(r3El){
-        var r3K=r1Key+'_'+r2Key;
-        r3El.querySelectorAll('.navL').forEach(function(b){b.onclick=function(){if(!r3Items)return;if(!r3Idx[r3K])r3Idx[r3K]=0;r3Idx[r3K]=((r3Idx[r3K]-1)%r3Items.length+r3Items.length)%r3Items.length;renderAll();applyRadialState();};});
-        r3El.querySelectorAll('.navR').forEach(function(b){b.onclick=function(){if(!r3Items)return;if(!r3Idx[r3K])r3Idx[r3K]=0;r3Idx[r3K]=(r3Idx[r3K]+1)%r3Items.length;renderAll();applyRadialState();};});
-        r3El.querySelectorAll('.re').forEach(function(el){el.onclick=function(){
-            if(!r3Items)return;
-            var idx=+el.dataset.ridx;
-            var vis=Math.min(r3Items.length,7);
-            var mid=Math.floor(vis/2);
-            if(!r3Idx[r3K])r3Idx[r3K]=0;
-            r3Idx[r3K]=((idx-mid)%r3Items.length+r3Items.length)%r3Items.length;
-            renderAll();applyRadialState();
-        };});
-        // Arc slider drag
-        var thumb=document.getElementById('rmThumb');
-        if(thumb){
-            var dragging=false;
-            thumb.addEventListener('pointerdown',function(e){dragging=true;e.preventDefault();});
-            document.addEventListener('pointermove',function(e){
-                if(!dragging)return;
-                var rect=ringsEl.getBoundingClientRect();
-                var mx=e.clientX-rect.left,my=e.clientY-rect.top;
-                var scaleX=500/rect.width,scaleY=260/rect.height;
-                mx*=scaleX;my*=scaleY;
-                var a=Math.atan2(CY-my,mx-CX);
-                if(a<0)a+=Math.PI*2;
-                var a1=Math.PI*0.82,a2=Math.PI*0.18;
-                a=Math.max(a2,Math.min(a1,a));
-                var t=(a-a1)/(a2-a1);
-                applySliderValue(r2Key,t);
-                renderAll();
-            });
-            document.addEventListener('pointerup',function(){dragging=false;});
-        }
-    }
-}
-
-// === ПРИМЕНЕНИЕ СОСТОЯНИЯ К ПРИЛОЖЕНИЮ ===
-function applyRadialState(){
-    var r1Mid=Math.floor(Math.min(5,r1Items.length)/2);
-    var r1Act=((r1Idx+r1Mid)%r1Items.length+r1Items.length)%r1Items.length;
-    var r1Key=r1Items[r1Act].key;
-
-    var r2Items=getR2Items(r1Key);
-    var r2Vis=Math.min(r2Items.length,7);
-    var r2Mid=Math.floor(r2Vis/2);
-    var r2Act=((( r2Idx[r1Key]||0)+r2Mid)%r2Items.length+r2Items.length)%r2Items.length;
-    var r2Key=r2Items[r2Act]?r2Items[r2Act].key:'';
-
-    // Инструменты → режим
-    if(r1Key==='tools'){
-        currentMode=r2Key;
-        if(typeof buildModeList==='function')buildModeList();
-        if(typeof buildModeSettings3D==='function'&&currentScene==='3d')buildModeSettings3D();
-        haptic();
-    }
-    // Д-режим → сцена
-    if(r1Key==='dmode'){
-        if(r2Key==='2d'||r2Key==='3d'){
-            var scBtn=document.querySelector('.scene-btn[data-scene="'+r2Key+'"]');
-            if(scBtn&&!scBtn.classList.contains('active'))scBtn.click();
-        }
-        // Формы (Ring 3)
-        var r3K=r1Key+'_'+r2Key;
-        var r3Items=getR3Items(r1Key,r2Key);
-        if(r3Items&&r3Items.length>0){
-            var r3Vis=Math.min(r3Items.length,7);
-            var r3Mid2=Math.floor(r3Vis/2);
-            var r3Act=(((r3Idx[r3K]||0)+r3Mid2)%r3Items.length+r3Items.length)%r3Items.length;
-            var shapeKey=r3Items[r3Act]?r3Items[r3Act].key:'0';
-            var shBtn=document.querySelector('#shapeBtns .sub-btn[data-shape="'+shapeKey+'"]');
-            if(shBtn&&!shBtn.classList.contains('active'))shBtn.click();
-        }
-    }
-    // Палитра
-    if(r1Key==='palette'){
-        var palKeys=Object.keys(palettes);
-        if(r2Act<palKeys.length){
-            var palBtn=document.querySelector('.palette-item[data-palette="'+palKeys[r2Act]+'"]');
-            if(palBtn)palBtn.click();
-        }else{
-            // Удиви меня
-            var surpriseBtn=document.getElementById('randomPalette');
-            if(surpriseBtn)surpriseBtn.click();
-        }
-        haptic();
-    }
-    // Музыка — Ring 2 кнопки
-    if(r1Key==='music'){
-        if(r2Key==='play'){var pb=document.getElementById('bgmPlayBtn');if(pb)pb.click();}
-        if(r2Key==='prev'){var pp=document.getElementById('bgmPrev');if(pp)pp.click();}
-        if(r2Key==='next'){var pn=document.getElementById('bgmNext');if(pn)pn.click();}
-    }
-}
-
-function applySliderValue(settingKey,t){
-    var defs={speed:{mn:0,mx:200},scale:{mn:30,mx:100},bright:{mn:20,mx:200},density:{mn:1,mx:5},force:{mn:1,mx:100},decay:{mn:1,mx:100}};
-    var d=defs[settingKey];if(!d)return;
-    var v=Math.round(d.mn+(d.mx-d.mn)*t);
-    if(settingKey==='speed'){spinSpeed=v/100;var sl=document.getElementById('speedSlider');if(sl)sl.value=v;}
-    if(settingKey==='bright'){brightnessLevel=v/100;var sl2=document.getElementById('brightnessSlider');if(sl2)sl2.value=v;}
-    if(settingKey==='scale'){zoomLevel=v/100;var sl3=document.getElementById('scaleSlider');if(sl3)sl3.value=v;}
-    if(settingKey==='density'){userGap=v;var sl4=document.getElementById('gapSlider');if(sl4)sl4.value=v;}
-}
-
-// Grip tap
-onTap(grip,function(){
-    rmOpen=!rmOpen;
-    RM.classList.toggle('open',rmOpen);
-    if(rmOpen)renderAll();
-});
-// Закрыть по тапу на визуализацию
-onTap(document.getElementById('glCanvas'),function(){
-    if(rmOpen){rmOpen=false;RM.classList.remove('open');}
-});
-if(document.getElementById('threeCanvas')){
-    onTap(document.getElementById('threeCanvas'),function(){
-        if(rmOpen){rmOpen=false;RM.classList.remove('open');}
-    });
-}
-
-renderAll();
 })();

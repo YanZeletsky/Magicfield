@@ -184,17 +184,15 @@ function init3DScene(){
     cv.addEventListener('pointerup',function(e){
         if(e.pointerType!=='touch'&&e.button===0){mouseDown=false;e.stopImmediatePropagation();}
     });
-    // 🌿 TOUCH: один палец → частицы + вращение камеры, два → зум
+    // 🌿 TOUCH: один палец → частицы, два → камера (OrbitControls)
     let _touch3dCount=0;
     cv.addEventListener('touchstart',function(e){
         _touch3dCount=e.touches.length;
-        if(_touch3dCount===1){mouseDown=true;mousePos.x=e.touches[0].clientX;mousePos.y=e.touches[0].clientY;}
-        else{mouseDown=false;}
-    },{passive:true});
+        if(_touch3dCount===1){mouseDown=true;mousePos.x=e.touches[0].clientX;mousePos.y=e.touches[0].clientY;e.stopImmediatePropagation();}
+    },{passive:false});
     cv.addEventListener('touchmove',function(e){
-        if(_touch3dCount===1&&e.touches.length===1){mousePos.x=e.touches[0].clientX;mousePos.y=e.touches[0].clientY;}
-        if(e.touches.length>=2){mouseDown=false;_touch3dCount=e.touches.length;}
-    },{passive:true});
+        if(_touch3dCount===1&&e.touches.length===1){mousePos.x=e.touches[0].clientX;mousePos.y=e.touches[0].clientY;e.preventDefault();}
+    },{passive:false});
     cv.addEventListener('touchend',function(e){
         if(e.touches.length===0){mouseDown=false;_touch3dCount=0;}
         else{_touch3dCount=e.touches.length;}
@@ -204,7 +202,7 @@ function init3DScene(){
     controls3D.autoRotate=true;controls3D.autoRotateSpeed=0.3;
     controls3D.minDistance=2;controls3D.maxDistance=20;controls3D.target.set(0,0,0);
     controls3D.mouseButtons={LEFT:null,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.ROTATE};
-    controls3D.touches={ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_PAN};
+    controls3D.touches={ONE:null,TWO:THREE.TOUCH.DOLLY_ROTATE};
     const pps=Math.floor(cubeSize3D/particleGap3D);total3D=pps*pps*pps;
     homePositions3D=new Float32Array(total3D*3);positions3D=new Float32Array(total3D*3);
     velocities3D=new Float32Array(total3D*3);colors3D=new Float32Array(total3D*3);
