@@ -3,11 +3,37 @@
 // Здесь частицы обретают глубину и объём
 let zoomMode3D=false;
 
-function rebuild3DParticles(){if(!threeReady)return;const pps=Math.floor(cubeSize3D/particleGap3D);total3D=pps*pps*pps;
-homePositions3D=new Float32Array(total3D*3);positions3D=new Float32Array(total3D*3);velocities3D=new Float32Array(total3D*3);colors3D=new Float32Array(total3D*3);
-const half=cubeSize3D/2,off=-half+particleGap3D/2;let idx=0;
-for(let ix=0;ix<pps;ix++)for(let iy=0;iy<pps;iy++)for(let iz=0;iz<pps;iz++){const x=off+ix*particleGap3D,y=off+iy*particleGap3D,z=off+iz*particleGap3D;const i3=idx*3;homePositions3D[i3]=x;homePositions3D[i3+1]=y;homePositions3D[i3+2]=z;positions3D[i3]=x;positions3D[i3+1]=y;positions3D[i3+2]=z;idx++;}
-update3DColors();geometry3D.setAttribute('position',new THREE.BufferAttribute(positions3D,3));geometry3D.setAttribute('color',new THREE.BufferAttribute(colors3D,3));}
+function makeShellSphere(){
+    // Каркас сферы линиями — тот же стиль/материал, что у каркаса куба
+    const eg=new THREE.EdgesGeometry(new THREE.SphereGeometry(cubeSize3D/2,16,12));
+    return new THREE.LineSegments(eg,new THREE.LineBasicMaterial({color:0x446688,transparent:true,opacity:0.3}));
+}
+function setShape3D(shape){
+    shape3D=shape;
+    if(boundaryCube)boundaryCube.visible=(shape!=='sphere');
+    if(boundarySphere)boundarySphere.visible=(shape==='sphere');
+    rebuild3DParticles();
+    if(typeof gpu3dInvalidate==='function')gpu3dInvalidate();
+}
+function rebuild3DParticles(){if(!threeReady)return;
+    let gap=particleGap3D;
+    if(shape3D==='sphere')gap=particleGap3D*0.8; // компенсация плотности (объём шара ~52% куба)
+    const pps=Math.floor(cubeSize3D/gap);
+    const half=cubeSize3D/2,off=-half+gap/2,R=half,R2=R*R,sphere=(shape3D==='sphere');
+    let cnt=0;
+    for(let ix=0;ix<pps;ix++)for(let iy=0;iy<pps;iy++)for(let iz=0;iz<pps;iz++){
+        if(!sphere){cnt++;continue;}
+        const x=off+ix*gap,y=off+iy*gap,z=off+iz*gap;if(x*x+y*y+z*z<=R2)cnt++;
+    }
+    total3D=cnt;
+    homePositions3D=new Float32Array(total3D*3);positions3D=new Float32Array(total3D*3);velocities3D=new Float32Array(total3D*3);colors3D=new Float32Array(total3D*3);
+    let idx=0;
+    for(let ix=0;ix<pps;ix++)for(let iy=0;iy<pps;iy++)for(let iz=0;iz<pps;iz++){
+        const x=off+ix*gap,y=off+iy*gap,z=off+iz*gap;
+        if(sphere&&x*x+y*y+z*z>R2)continue;
+        const i3=idx*3;homePositions3D[i3]=x;homePositions3D[i3+1]=y;homePositions3D[i3+2]=z;positions3D[i3]=x;positions3D[i3+1]=y;positions3D[i3+2]=z;idx++;
+    }
+    update3DColors();geometry3D.setAttribute('position',new THREE.BufferAttribute(positions3D,3));geometry3D.setAttribute('color',new THREE.BufferAttribute(colors3D,3));}
 function applyMandalaConstraint3D(){
     if(mandalaSubMode3D===2)return;// голограмма — без ограничений
     if(mandalaSubMode3D===0&&mandalaMap&&flowerData){// Калейдоскоп — сферическое ограничение + зеркало
@@ -59,8 +85,43 @@ function applyMandalaConstraint3D(){
             velocities3D[i3]-=vn*nx;velocities3D[i3+1]-=vn*ny;velocities3D[i3+2]-=vn*nz;}
     }
 }
+function buildSacredEdges3D(fig){
+    const R=cubeSize3D*0.45,phi=1.6180339887;
+    function edgesFromVerts(V){var e=[],mn=1e9;
+        for(var i=0;i<V.length;i++)for(var j=i+1;j<V.length;j++){var dx=V[i][0]-V[j][0],dy=V[i][1]-V[j][1],dz=V[i][2]-V[j][2];var d=Math.sqrt(dx*dx+dy*dy+dz*dz);if(d<mn)mn=d;}
+        for(var i2=0;i2<V.length;i2++)for(var j2=i2+1;j2<V.length;j2++){var dx2=V[i2][0]-V[j2][0],dy2=V[i2][1]-V[j2][1],dz2=V[i2][2]-V[j2][2];var d2=Math.sqrt(dx2*dx2+dy2*dy2+dz2*dz2);if(d2<=mn*1.08)e.push([V[i2],V[j2]]);}
+        return e;}
+    function seg(a,b){return {x1:a[0]*R,y1:a[1]*R,z1:a[2]*R,x2:b[0]*R,y2:b[1]*R,z2:b[2]*R};}
+    var E,out=[];
+    if(fig===1){var t1=[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]],t2=[[-1,-1,-1],[-1,1,1],[1,-1,1],[1,1,-1]];E=edgesFromVerts(t1).concat(edgesFromVerts(t2));}
+    else if(fig===2){var Vi=[[0,1,phi],[0,1,-phi],[0,-1,phi],[0,-1,-phi],[1,phi,0],[1,-phi,0],[-1,phi,0],[-1,-phi,0],[phi,0,1],[phi,0,-1],[-phi,0,1],[-phi,0,-1]];E=edgesFromVerts(Vi);}
+    else if(fig===3){var ip=1/phi,Vd=[[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1],[0,ip,phi],[0,ip,-phi],[0,-ip,phi],[0,-ip,-phi],[ip,phi,0],[ip,-phi,0],[-ip,phi,0],[-ip,-phi,0],[phi,0,ip],[phi,0,-ip],[-phi,0,ip],[-phi,0,-ip]];E=edgesFromVerts(Vd);}
+    else{var cube=[[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]],octa=[[1.5,0,0],[-1.5,0,0],[0,1.5,0],[0,-1.5,0],[0,0,1.5],[0,0,-1.5]];E=edgesFromVerts(cube);for(var i=0;i<cube.length;i++)for(var j=0;j<octa.length;j++)E.push([cube[i],octa[j]]);}
+    for(var k=0;k<E.length;k++)out.push(seg(E[k][0],E[k][1]));
+    return out;
+}
+function rebuildSacred3D(fig){
+    if(!homePositions3D||!threeReady)return;
+    var segs=buildSacredEdges3D(fig);if(!segs.length){rebuild3DParticles();return;}
+    var lens=[],cum=[0],tot=0;
+    for(var j=0;j<segs.length;j++){var s=segs[j];var L=Math.sqrt((s.x2-s.x1)*(s.x2-s.x1)+(s.y2-s.y1)*(s.y2-s.y1)+(s.z2-s.z1)*(s.z2-s.z1));lens.push(L);tot+=L;cum.push(tot);}
+    var sw=cubeSize3D*0.012;
+    for(var i=0;i<total3D;i++){
+        var d=(i/total3D)*tot,si=0;
+        for(var jj=0;jj<segs.length;jj++){if(cum[jj+1]>=d){si=jj;break;}}
+        var t=(d-cum[si])/(lens[si]+1e-4),sg=segs[si];
+        var x=sg.x1+(sg.x2-sg.x1)*t,y=sg.y1+(sg.y2-sg.y1)*t,z=sg.z1+(sg.z2-sg.z1)*t;
+        var i3=i*3;
+        homePositions3D[i3]=x+Math.sin(i*0.37)*sw;homePositions3D[i3+1]=y+Math.sin(i*1.7)*sw;homePositions3D[i3+2]=z+Math.cos(i*1.3)*sw;
+        positions3D[i3]=homePositions3D[i3];positions3D[i3+1]=homePositions3D[i3+1];positions3D[i3+2]=homePositions3D[i3+2];
+    }
+    update3DColors();
+    geometry3D.setAttribute('position',new THREE.BufferAttribute(positions3D,3));
+    geometry3D.setAttribute('color',new THREE.BufferAttribute(colors3D,3));
+}
 function rebuildMandalaHome(sub){
     if(!homePositions3D||!threeReady)return;
+    if(sacredFig3D>0){rebuildSacred3D(sacredFig3D);return;}
     if(sub===2)return;// голограмма = куб
     const h=cubeSize3D/2,rays=mandalaRays3D,rings=mandalaRings3D;
     let idx=0;
@@ -130,8 +191,9 @@ function rebuildMandalaHome(sub){
 let threeReady=false,threeLoading=false,scene3D,camera3D,renderer3D,controls3D;
 let points3DMesh,geometry3D,positions3D,homePositions3D,velocities3D,colors3D;
 let stars3D,total3D=0,cubeSize3D=6;
+let shape3D='cube',boundaryCube=null,boundarySphere=null;
 let vortexForce3D=0.15,vortexSpin3D=0.3,homeDamping3D=0.04,velDamping3D=0.92,maxSpeed3D=0.8,particleSize3D=0.04,brightness3D=1.5,particleGap3D=0.15;
-let testMode3D='vortex',mandalaSubMode3D=0,flowerData=null,flowerBaseR=0,mandalaMap=null,mandalaMirror=null,mandalaRays3D=8,mandalaRings3D=4,mandalaRot3D=0.3,mandalaPetals3D=0.5;
+let testMode3D='vortex',mandalaSubMode3D=0,flowerData=null,flowerBaseR=0,mandalaMap=null,mandalaMirror=null,mandalaRays3D=8,mandalaRings3D=4,mandalaRot3D=0.3,mandalaPetals3D=0.5,mandalaSym3D=0,sacredFig3D=0;
 let raycaster3D,mouse3D,interactionPlane3D,intersect3D;
 
 function loadThreeJS(callback){
@@ -150,7 +212,13 @@ function loadThreeJS(callback){
     s1.onload=function(){
         const s2=document.createElement('script');
         s2.src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
-        s2.onload=function(){threeLoading=false;if(el)el.style.display='none';callback();};
+        s2.onload=function(){
+            var s3=document.createElement('script');
+            s3.src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/misc/GPUComputationRenderer.js';
+            s3.onload=function(){threeLoading=false;if(el)el.style.display='none';callback();};
+            s3.onerror=function(){threeLoading=false;if(el)el.style.display='none';callback();}; // GCR не критичен — 3D работает и без GPU
+            document.head.appendChild(s3);
+        };
         s2.onerror=onFail;
         document.head.appendChild(s2);
     };
@@ -203,6 +271,7 @@ function init3DScene(){
     controls3D.minDistance=2;controls3D.maxDistance=20;controls3D.target.set(0,0,0);
     controls3D.mouseButtons={LEFT:null,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.ROTATE};
     controls3D.touches={ONE:null,TWO:THREE.TOUCH.DOLLY_ROTATE};
+    if(window.matchMedia&&window.matchMedia('(max-width:768px)').matches){camera3D.position.setLength(controls3D.maxDistance);var _z=document.getElementById('t3dZoom');if(_z){_z.value=controls3D.maxDistance;var _zv=document.getElementById('t3dZoomV');if(_zv)_zv.textContent=String(controls3D.maxDistance);}}
     const pps=Math.floor(cubeSize3D/particleGap3D);total3D=pps*pps*pps;
     homePositions3D=new Float32Array(total3D*3);positions3D=new Float32Array(total3D*3);
     velocities3D=new Float32Array(total3D*3);colors3D=new Float32Array(total3D*3);
@@ -221,7 +290,8 @@ function init3DScene(){
         blending:THREE.AdditiveBlending,depthWrite:false,depthTest:true,transparent:true,opacity:1.5});
     points3DMesh=new THREE.Points(geometry3D,mat);scene3D.add(points3DMesh);
     const eg=new THREE.EdgesGeometry(new THREE.BoxGeometry(cubeSize3D,cubeSize3D,cubeSize3D));
-    scene3D.add(new THREE.LineSegments(eg,new THREE.LineBasicMaterial({color:0x446688,transparent:true,opacity:0.3})));
+    boundaryCube=new THREE.LineSegments(eg,new THREE.LineBasicMaterial({color:0x446688,transparent:true,opacity:0.3}));scene3D.add(boundaryCube);
+    boundarySphere=makeShellSphere();scene3D.add(boundarySphere);boundarySphere.visible=(shape3D==='sphere');boundaryCube.visible=(shape3D!=='sphere');
     const sg=new THREE.BufferGeometry(),sp=new Float32Array(500*3);
     for(let i=0;i<1500;i++)sp[i]=(Math.random()-0.5)*30;
     sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
@@ -234,11 +304,11 @@ function init3DScene(){
     },true);
     // 🌿 touch — и вращение (OrbitControls через pointer events), и частицы
     cv.addEventListener('touchstart',function(e){
-        e.preventDefault();e.stopPropagation();
+        if(e.touches.length>=2)return;e.preventDefault();e.stopPropagation();
         if(!zoomMode3D){touchPoints=[];for(var i=0;i<e.touches.length;i++)touchPoints.push({x:e.touches[i].clientX,y:e.touches[i].clientY});}
     },{passive:false,capture:true});
     cv.addEventListener('touchmove',function(e){
-        e.preventDefault();e.stopPropagation();
+        if(e.touches.length>=2)return;e.preventDefault();e.stopPropagation();
         if(!zoomMode3D){touchPoints=[];for(var i=0;i<e.touches.length;i++)touchPoints.push({x:e.touches[i].clientX,y:e.touches[i].clientY});}
     },{passive:false,capture:true});
     cv.addEventListener('touchend',function(e){e.preventDefault();e.stopPropagation();touchPoints=[];},{passive:false,capture:true});
@@ -322,7 +392,7 @@ function getVortexForce3D(px,py,pz,pts){
 }
 // 🌿 3D-силы — масштабированы по образцу вихря (vortexForce3D ≈ 0.15)
 const manualModes3D=['vortex','turbulence','electrostatic','wave','pulsar','swarm'];
-const autoModes3D=['fibonacci','lorenz','mycelium','breathing','galaxy','blackhole','neural','crystal','meteor','nebula'];
+const autoModes3D=['fibonacci','lorenz','mycelium','breathing'];
 
 function getTurbulenceForce3D(px,py,pz,pts,t){
     let fx=0,fy=0,fz=0;const mp=modeParams.turbulence,inten=mp.intensity||1,ns=mp.noiseScale||1,f3d=vortexForce3D;
@@ -615,7 +685,40 @@ function getForce3D(px,py,pz,pts,mode,t){
     if(mode==='mandala')return getMandalaForce3D(px,py,pz,pts,t);
     return getVortexForce3D(px,py,pz,pts);}
 
+function mirrorSpherical3D(pts,t3d){
+    const out=[],rays=mandalaRays3D,bands=Math.max(2,mandalaRings3D),sa=Math.PI*2/rays,sb=Math.PI/bands,rot=t3d*mandalaRot3D;
+    for(let p=0;p<pts.length;p++){const pt=pts[p];
+        const r=Math.sqrt(pt.x*pt.x+pt.y*pt.y+pt.z*pt.z)||1e-3;
+        const theta=Math.acos(Math.max(-1,Math.min(1,pt.y/r)));
+        const phi=Math.atan2(pt.z,pt.x)-rot;
+        const relP=((phi%sa)+sa)%sa, relT=((theta%sb)+sb)%sb;
+        for(let k=0;k<rays;k++){const a=k*sa+rot+(k%2===1?sa-relP:relP);
+            for(let m=0;m<bands;m++){const th=m*sb+(m%2===1?sb-relT:relT);const sinT=Math.sin(th);
+                out.push({x:r*sinT*Math.cos(a),y:r*Math.cos(th),z:r*sinT*Math.sin(a),strength:(pt.strength||1)/Math.sqrt(rays*bands)});}}}
+    return out;
+}
+function mirrorPolyhedral3D(pts,t3d){
+    const out=[],rot=t3d*mandalaRot3D,perms=[[0,1,2],[1,2,0],[2,0,1]];
+    for(let p=0;p<pts.length;p++){const pt=pts[p];const ca=Math.cos(rot),sa=Math.sin(rot);
+        const c=[pt.x*ca-pt.z*sa,pt.y,pt.x*sa+pt.z*ca],str=(pt.strength||1)/Math.sqrt(24);
+        for(let pm=0;pm<3;pm++){const P=perms[pm];
+            for(let sgn=0;sgn<8;sgn++){const sx=(sgn&1)?-1:1,sy=(sgn&2)?-1:1,sz=(sgn&4)?-1:1;
+                out.push({x:c[P[0]]*sx,y:c[P[1]]*sy,z:c[P[2]]*sz,strength:str});}}}
+    return out;
+}
+function mirrorMultiAxis3D(pts,t3d){
+    const out=[],rays=Math.max(3,mandalaRays3D),sa=Math.PI*2/rays,rot=t3d*mandalaRot3D;
+    for(let p=0;p<pts.length;p++){const pt=pts[p],str=(pt.strength||1)/Math.sqrt(rays*3);
+        for(let k=0;k<rays;k++){const a=k*sa+rot,ca=Math.cos(a),si=Math.sin(a);
+            out.push({x:pt.x*ca-pt.z*si,y:pt.y,z:pt.x*si+pt.z*ca,strength:str});
+            out.push({x:pt.x,y:pt.y*ca-pt.z*si,z:pt.y*si+pt.z*ca,strength:str});
+            out.push({x:pt.x*ca-pt.y*si,y:pt.x*si+pt.y*ca,z:pt.z,strength:str});}}
+    return out;
+}
 function mirrorPoints3D(pts,t3d){
+    if(mandalaSym3D===1)return mirrorSpherical3D(pts,t3d);
+    if(mandalaSym3D===2)return mirrorPolyhedral3D(pts,t3d);
+    if(mandalaSym3D===3)return mirrorMultiAxis3D(pts,t3d);
     const out=[];const rays=mandalaRays3D,sa=Math.PI*2/rays;
     const rot=t3d*mandalaRot3D;
     for(let p=0;p<pts.length;p++){
@@ -705,7 +808,7 @@ function updateKaleidoPhysics3D(dt){
     geometry3D.attributes.position.needsUpdate=true;
 }
 function updatePhysics3D(dt){
-    if(testMode3D==='mandala'&&mandalaSubMode3D===0&&mandalaMap){updateKaleidoPhysics3D(dt);return;}
+    if(testMode3D==='mandala'&&mandalaSubMode3D===0&&mandalaMap&&!sacredFig3D){updateKaleidoPhysics3D(dt);return;}
     const dt60=Math.min(3,dt*60*spinSpeed);
     const t=time*0.001;
     const pts=[];
@@ -717,10 +820,12 @@ function updatePhysics3D(dt){
         if(musicBands.bass>0.3)pts.push({x:0,y:0,z:0,strength:musicBands.bass*3});
     }
     const active=pts.length>0||(testMode3D==='galaxy')||(testMode3D==='blackhole')||(testMode3D==='neural')||(testMode3D==='crystal')||(testMode3D==='meteor')||(testMode3D==='nebula');
+    if(gpu3dActive()){ try{ if(gpuStep3D(dt60,pts,active)) return; }catch(e){ console.warn('gpu3d step',e); gpu3dReady=false; } }
+    if(typeof gpu3dUse==='function')gpu3dUse(0);
     for(let i=0;i<total3D;i++){
         const i3=i*3,px=positions3D[i3],py=positions3D[i3+1],pz=positions3D[i3+2];
         if(active){
-            const f=testMode3D==='mandala'?getMandalaForce3D(px,py,pz,pts,t):getForce3D(px,py,pz,pts,testMode3D,t);
+            const f=testMode3D==='mandala'?getMandalaForce3D(px,py,pz,pts,t):getForce3D(px,py,pz,pts,testMode3D,t,velocities3D[i3],velocities3D[i3+1],velocities3D[i3+2]);
             velocities3D[i3]=(velocities3D[i3]+f.fx*dt60)*velDamping3D;
             velocities3D[i3+1]=(velocities3D[i3+1]+f.fy*dt60)*velDamping3D;
             velocities3D[i3+2]=(velocities3D[i3+2]+f.fz*dt60)*velDamping3D;
@@ -744,8 +849,8 @@ function updatePhysics3D(dt){
             else{const lf=homeDamping3D*dt60;positions3D[i3]+=dx*lf;positions3D[i3+1]+=dy*lf;positions3D[i3+2]+=dz*lf;velocities3D[i3]=dx*lf;velocities3D[i3+1]=dy*lf;velocities3D[i3+2]=dz*lf;}
         }
     }
-    if(testMode3D==='mandala'&&mandalaSubMode3D===1)applyMandalaConstraint3D();
-    if(testMode3D==='mandala'&&mandalaSubMode3D===2){for(let i=0;i<total3D;i++){const i3=i*3;const r=Math.sqrt(positions3D[i3]**2+positions3D[i3+2]**2);positions3D[i3+1]=homePositions3D[i3+1]+Math.sin(r*2+t)*0.3*Math.cos(t*0.7);}}
+    if(testMode3D==='mandala'&&mandalaSubMode3D===1&&!sacredFig3D)applyMandalaConstraint3D();
+    if(testMode3D==='mandala'&&mandalaSubMode3D===2&&!sacredFig3D){for(let i=0;i<total3D;i++){const i3=i*3;const r=Math.sqrt(positions3D[i3]**2+positions3D[i3+2]**2);positions3D[i3+1]=homePositions3D[i3+1]+Math.sin(r*2+t)*0.3*Math.cos(t*0.7);}}
     geometry3D.attributes.position.needsUpdate=true;
 }
 function render3DScene(dt){
@@ -754,7 +859,16 @@ function render3DScene(dt){
     if(transitionProgress<1){transitionProgress=Math.min(1,transitionProgress+dt*3);if(transitionProgress>=1)currentStops=JSON.parse(JSON.stringify(targetStops));update3DColors();}
     updatePhysics3D(dt);
     controls3D.update();
-    if(points3DMesh){points3DMesh.material.opacity=brightness3D;points3DMesh.material.size=particleSize3D;}
+    if(points3DMesh){
+        var _tm=(typeof toneMode!=='undefined')?toneMode:'add';
+        var _pw=(typeof toneDensityPower!=='undefined')?toneDensityPower:1;
+        var _expo=(_tm==='add')?1:Math.min(1,Math.pow(60000/Math.max(1,total3D),_pw));
+        points3DMesh.material.opacity=brightness3D*_expo;
+        points3DMesh.material.size=particleSize3D;
+        var _wantTM=(_tm==='hdr')?THREE.ACESFilmicToneMapping:THREE.NoToneMapping;
+        if(renderer3D.toneMapping!==_wantTM){renderer3D.toneMapping=_wantTM;points3DMesh.material.needsUpdate=true;}
+        renderer3D.toneMappingExposure=(_tm==='hdr')?((typeof toneAces!=='undefined')?toneAces:0.85):1.0;
+    }
     if(stars3D){stars3D.rotation.y+=dt*0.03;stars3D.rotation.x+=dt*0.01;}
     // 🧠 Нейросеть — линии связей между ближайшими нейронами
     if(testMode3D==='neural'&&points3DMesh){
@@ -811,4 +925,116 @@ function switchFromTest(){
     document.getElementById('threeCanvas').style.display='none';
     if(useWebGL)document.getElementById('glCanvas').classList.remove('hidden');
     else document.getElementById('c2dCanvas').classList.remove('hidden');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GPU-3D (экспериментально): симуляция частиц на GPUComputationRenderer.
+// Режимы manualModes3D. Любой сбой → тихий фолбэк на CPU (3D не ломается).
+// ═══════════════════════════════════════════════════════════════
+var GPU3D_SPEC={vortex:[0,'',1,'',1],turbulence:[1,'intensity',1,'noiseScale',1],electrostatic:[2,'charge',1,'crystal',1],wave:[3,'frequency',1,'amplitude',1],pulsar:[4,'pulseSpeed',1,'tangent',1],swarm:[5,'cohesion',1,'separation',1],fibonacci:[6,'spiralTight',1,'force',1],lorenz:[7,'speed',1,'force',1],mycelium:[8,'growth',1,'branching',1],breathing:[9,'breathSpeed',1,'depth',1]};
+var gpu3dReady=false,gpu3dN=-1,gpuCompute3D=null,posVar3D=null,velVar3D=null,homeTex3D=null,gT3D=0;
+
+var VEL3D_FS=`
+uniform sampler2D uHome; uniform vec4 uPts[8]; uniform int uNumPts,uMode;
+uniform float uActive,uTime,uDt,uP0,uP1,uVF,uVS,uSpin;
+void main(){
+  vec2 uv=gl_FragCoord.xy/resolution.xy;
+  vec3 pos=texture2D(texturePosition,uv).xyz;
+  vec3 vel=texture2D(textureVelocity,uv).xyz;
+  vec3 home=texture2D(uHome,uv).xyz;
+  if(uActive>0.5){
+    vec3 F=vec3(0.0);
+    if(uMode==7){float spd=uP0,mf=uP1;float lx=pos.x*0.3,ly=pos.y*0.3,lz=pos.z*0.3+25.0;float dxl=10.0*(ly-lx)*spd;float dyl=(lx*(28.0-lz)-ly)*spd;float dzl=(lx*ly-2.6666667*lz)*spd;float ln=sqrt(dxl*dxl+dyl*dyl+dzl*dzl)+0.01;F+=vec3(dxl,dyl,dzl)/ln*uVF*mf;}
+    for(int p=0;p<8;p++){ if(p>=uNumPts) break;
+      vec3 d=uPts[p].xyz-pos; float dist=length(d); float str=uPts[p].w;
+      if(dist<0.02) continue; vec3 n=d/dist;
+      if(uMode==0){ if(dist<0.05) continue; float sp=uVS*uSpin; if(dist<0.5){F+=n*5.0*str*uVF;continue;} float a=1.5/(dist+0.5)*str*uVF; F+=n*a; F.x+=(-n.z)*a*sp; F.z+=n.x*a*sp; F.x+=n.y*a*sp*0.3; F.y+=(-n.x)*a*sp*0.3; }
+      else if(uMode==1){ if(dist<0.05) continue; float inten=uP0,ns=uP1; float n1=sin(pos.x*ns+uTime*2.0)*cos(pos.y*ns*1.3+uTime*1.6); float n2=sin(pos.y*ns*0.9+uTime*2.2)*cos(pos.z*ns+uTime*1.4); float n3=sin(pos.z*ns*1.1+uTime*1.8)*cos(pos.x*ns*0.8+uTime*2.4); float a=(1.0+n1*0.5)*uVF*inten/(dist+0.5)*str; F.x+=n.x*a+(-n.z)*n2*a*0.3; F.y+=n.y*a+n.x*n3*a*0.3; F.z+=n.z*a+n.y*n1*a*0.3; }
+      else if(uMode==2){ if(dist<0.1) continue; float ch=uP0,cr=uP1; float sg=(mod(float(p),2.0)<0.5)?1.0:-1.0; float a=sg*uVF*ch*2.0/(dist*dist+0.5)*str; F+=n*a; float ang=atan(n.z,n.x); float cr2=sin(ang*4.0+dist*0.3)*uVF*cr*0.3/(dist+0.5)*str; F.x+=(-n.z)*cr2; F.z+=n.x*cr2; F.y+=sin(ang*3.0+uTime)*uVF*cr*0.2/(dist+0.5)*str; }
+      else if(uMode==3){ if(dist<0.05) continue; float a=uVF*uP1*2.0*sin(dist*uP0*2.0-uTime*3.0)/(dist+0.5)*str; F+=n*a; }
+      else if(uMode==4){ if(dist<0.05) continue; float w=sin(dist*0.8-uTime*uP0*4.0); float a=w*uVF*1.5/(dist+0.4)*str; F+=n*a; float tga=uVF*uP1*0.3/(dist+0.5)*str; F.x+=(-n.z)*tga; F.z+=n.x*tga; F.y+=sin(uTime*uP0*2.0+dist)*n.y*tga*0.5; }
+      else if(uMode==5){ if(dist<0.05) continue; float cohF=uVF*uP0*1.5/(dist+0.5); float sepF=dist<1.5?-uVF*uP1*3.0/(dist*dist+0.3):0.0; float ali=sin(uTime*2.0+dist*3.0)*uVF*0.3; float a=(cohF+sepF+ali)*str; F+=n*a; }
+      else if(uMode==6){ if(dist<0.05) continue; float tight=uP0,mf=uP1; float sa=log(dist+1.0)*1.618*2.4*tight; float a2=uVF*mf*1.5/(dist+0.3)*str; float ca=cos(sa),sna=sin(sa); F.x+=(n.x*ca-n.z*sna)*a2; F.z+=(n.x*sna+n.z*ca)*a2; F.y+=n.y*a2*0.5+sin(sa+uTime)*a2*0.2; }
+      else if(uMode==7){ if(dist<0.05) continue; float mf7=uP1; float a2=uVF*mf7/(dist+0.3)*str; F+=n*a2; }
+      else if(uMode==8){ if(dist<0.05) continue; float gr=uP0,br=uP1; float pulse=sin(uTime*2.0*gr+dist*0.5)*0.5+0.5; float a2=uVF*gr*1.5/(dist+0.3)*(0.6+pulse*0.4)*str; F+=n*a2; float ang=atan(n.z,n.x); float bf=sin(ang*3.0*br+uTime*2.0)*uVF*br*0.3/(dist+0.3)*str; F.x+=(-n.z)*bf; F.z+=n.x*bf; F.y+=sin(ang*2.0*br+uTime*1.5)*uVF*br*0.2/(dist+0.3)*str; }
+      else if(uMode==9){ if(dist<0.05) continue; float bs=uP0,dp=uP1; float brb=sin(uTime*bs*2.0)*0.5+0.5; float a2=uVF*dp*brb*2.0/(dist+0.3)*str; F+=n*a2; }
+    }
+    vel=(vel+F*uDt)*0.92; float sp=length(vel); if(sp>0.8) vel=vel*0.8/sp;
+  } else {
+    vec3 dH=home-pos; float dd=length(dH);
+    if(dd<0.01) vel=vec3(0.0); else vel=dH*(0.04*uDt);
+  }
+  gl_FragColor=vec4(vel,1.0);
+}`;
+
+var POS3D_FS=`
+uniform sampler2D uHome; uniform float uActive,uDt;
+void main(){
+  vec2 uv=gl_FragCoord.xy/resolution.xy;
+  vec3 pos=texture2D(texturePosition,uv).xyz;
+  vec3 vel=texture2D(textureVelocity,uv).xyz;
+  vec3 home=texture2D(uHome,uv).xyz;
+  if(uActive>0.5){ pos+=vel*uDt; }
+  else { vec3 dH=home-pos; float dd=length(dH); if(dd<0.01) pos=home; else pos+=dH*(0.04*uDt); }
+  gl_FragColor=vec4(pos,1.0);
+}`;
+
+function gpu3dPatchMaterial(){
+    var mat=points3DMesh.material;
+    var ref=new Float32Array(total3D*2);
+    for(var j=0;j<total3D;j++){ref[j*2]=((j%gT3D)+0.5)/gT3D;ref[j*2+1]=(Math.floor(j/gT3D)+0.5)/gT3D;}
+    geometry3D.setAttribute('ref',new THREE.BufferAttribute(ref,2));
+    mat.onBeforeCompile=function(shader){
+        shader.uniforms.uPosTex={value:null};
+        shader.uniforms.uUseGpu={value:0.0};
+        mat.userData._sh=shader;
+        shader.vertexShader='uniform sampler2D uPosTex;\nuniform float uUseGpu;\nattribute vec2 ref;\n'+shader.vertexShader.replace('#include <begin_vertex>','vec3 transformed = uUseGpu>0.5 ? texture2D(uPosTex, ref).xyz : vec3(position);');
+    };
+    mat.needsUpdate=true;
+}
+function gpu3dUse(v){var mat=points3DMesh&&points3DMesh.material;if(mat&&mat.userData._sh&&mat.userData._sh.uniforms.uUseGpu)mat.userData._sh.uniforms.uUseGpu.value=v;}
+function gpu3dBuild(){
+    if(typeof THREE==='undefined'||typeof THREE.GPUComputationRenderer!=='function'||!renderer3D||!geometry3D||!points3DMesh)return false;
+    gT3D=Math.ceil(Math.sqrt(total3D));var N=gT3D*gT3D;
+    gpuCompute3D=new THREE.GPUComputationRenderer(gT3D,gT3D,renderer3D);
+    var dtP=gpuCompute3D.createTexture(),dtV=gpuCompute3D.createTexture();
+    var pd=dtP.image.data,vd=dtV.image.data,hd=new Float32Array(N*4);
+    for(var i=0;i<N;i++){var o=i*4; if(i<total3D){var i3=i*3;pd[o]=positions3D[i3];pd[o+1]=positions3D[i3+1];pd[o+2]=positions3D[i3+2];pd[o+3]=1;vd[o]=velocities3D[i3];vd[o+1]=velocities3D[i3+1];vd[o+2]=velocities3D[i3+2];vd[o+3]=1;hd[o]=homePositions3D[i3];hd[o+1]=homePositions3D[i3+1];hd[o+2]=homePositions3D[i3+2];hd[o+3]=1;}else{pd[o+3]=1;vd[o+3]=1;hd[o+3]=1;}}
+    homeTex3D=new THREE.DataTexture(hd,gT3D,gT3D,THREE.RGBAFormat,THREE.FloatType);
+    homeTex3D.minFilter=THREE.NearestFilter;homeTex3D.magFilter=THREE.NearestFilter;homeTex3D.needsUpdate=true;
+    velVar3D=gpuCompute3D.addVariable('textureVelocity',VEL3D_FS,dtV);
+    posVar3D=gpuCompute3D.addVariable('texturePosition',POS3D_FS,dtP);
+    gpuCompute3D.setVariableDependencies(velVar3D,[posVar3D,velVar3D]);
+    gpuCompute3D.setVariableDependencies(posVar3D,[posVar3D,velVar3D]);
+    var vu=velVar3D.material.uniforms;
+    vu.uHome={value:homeTex3D};vu.uPts={value:_gpu3dPtsBuf()};vu.uNumPts={value:0};vu.uMode={value:0};
+    vu.uActive={value:0};vu.uTime={value:0};vu.uDt={value:0};vu.uP0={value:1};vu.uP1={value:1};
+    vu.uVF={value:vortexForce3D};vu.uVS={value:vortexSpin3D};vu.uSpin={value:1};
+    var pu=posVar3D.material.uniforms;
+    pu.uHome={value:homeTex3D};pu.uActive={value:0};pu.uDt={value:0};
+    var err=gpuCompute3D.init();
+    if(err){console.warn('GPU3D init:',err);gpuCompute3D=null;return false;}
+    gpu3dPatchMaterial();
+    gpu3dN=total3D;gpu3dReady=true;return true;
+}
+var _gpu3dPts=null;
+function _gpu3dPtsBuf(){ if(!_gpu3dPts){_gpu3dPts=[];for(var i=0;i<8;i++)_gpu3dPts.push(new THREE.Vector4());} return _gpu3dPts; }
+function gpu3dEnsure(){ if(gpu3dReady&&gpu3dN===total3D)return true; try{return gpu3dBuild();}catch(e){console.warn('GPU3D build:',e);gpu3dReady=false;return false;} }
+function gpu3dInvalidate(){gpu3dReady=false;gpu3dN=-1;}
+function gpu3dActive(){return typeof engineMode!=='undefined'&&engineMode==='gpu'&&typeof currentScene!=='undefined'&&currentScene==='3d'&&threeReady&&!!GPU3D_SPEC[testMode3D]&&gpu3dEnsure();}
+
+function gpuStep3D(dt60,pts,active){
+    var spec=GPU3D_SPEC[testMode3D]||GPU3D_SPEC.vortex;var mp=modeParams[testMode3D]||{};
+    var p0=(spec[1]?mp[spec[1]]:0)||spec[2];var p1=(spec[3]?mp[spec[3]]:0)||spec[4];
+    var buf=_gpu3dPtsBuf();var np=Math.min(8,pts.length);
+    for(var i=0;i<8;i++){ if(i<np){buf[i].set(pts[i].x,pts[i].y,pts[i].z,pts[i].strength||1);} else buf[i].set(0,0,0,0); }
+    var vu=velVar3D.material.uniforms;
+    vu.uPts.value=buf;vu.uNumPts.value=np;vu.uMode.value=spec[0];vu.uActive.value=active?1:0;
+    vu.uTime.value=time*0.001;vu.uDt.value=dt60;vu.uP0.value=p0;vu.uP1.value=p1;
+    vu.uVF.value=vortexForce3D;vu.uVS.value=vortexSpin3D;vu.uSpin.value=spinDirection;
+    var pu=posVar3D.material.uniforms;pu.uActive.value=active?1:0;pu.uDt.value=dt60;
+    gpuCompute3D.compute();
+    var mat=points3DMesh.material;
+    if(mat.userData._sh){mat.userData._sh.uniforms.uPosTex.value=gpuCompute3D.getCurrentRenderTarget(posVar3D).texture;mat.userData._sh.uniforms.uUseGpu.value=1.0;}
+    return true;
 }

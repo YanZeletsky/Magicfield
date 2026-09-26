@@ -1,4 +1,46 @@
+/* Самохостинг: Manrope (тело+заголовки, лат+кир) + Space Grotesk (числа, лат) */
+/* Manrope latin */
+@font-face{font-family:'Manrope';font-weight:400;font-display:swap;src:url('fonts/manrope-latin-400-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Manrope';font-weight:500;font-display:swap;src:url('fonts/manrope-latin-500-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Manrope';font-weight:600;font-display:swap;src:url('fonts/manrope-latin-600-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Manrope';font-weight:700;font-display:swap;src:url('fonts/manrope-latin-700-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+/* Manrope cyrillic */
+@font-face{font-family:'Manrope';font-weight:400;font-display:swap;src:url('fonts/manrope-cyrillic-400-normal.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+@font-face{font-family:'Manrope';font-weight:500;font-display:swap;src:url('fonts/manrope-cyrillic-500-normal.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+@font-face{font-family:'Manrope';font-weight:600;font-display:swap;src:url('fonts/manrope-cyrillic-600-normal.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+@font-face{font-family:'Manrope';font-weight:700;font-display:swap;src:url('fonts/manrope-cyrillic-700-normal.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+/* Space Grotesk latin (числа/акценты) */
+@font-face{font-family:'Space Grotesk';font-weight:500;font-display:swap;src:url('fonts/space-grotesk-latin-500-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+2000-206F;}
+@font-face{font-family:'Space Grotesk';font-weight:600;font-display:swap;src:url('fonts/space-grotesk-latin-600-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+2000-206F;}
+@font-face{font-family:'Space Grotesk';font-weight:700;font-display:swap;src:url('fonts/space-grotesk-latin-700-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+2000-206F;}
+:root{ --font-body:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; --font-num:'Space Grotesk','Manrope',monospace; }
+body,button,input,select{ font-family:var(--font-body); }
+.num,.live-num{ font-family:var(--font-num); font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
+
 * { margin:0; padding:0; box-sizing:border-box; }
+/* ══════════════════════════════════════════════════════════
+   Soundfield — styles.css
+   Визуальное оформление: glassmorphism UI, тёмная тема
+   
+   Секции:
+   1. Основа (body, canvas, hidden)
+   2. Курсор (кастомный, десктоп)
+   3. Сцены (верхняя панель 2D/3D)
+   4. Якоря (eye, profile, music, zoom, rotate)
+   5. Профиль
+   6. Левый тулбар
+   7. Контентная панель (боковая)
+   8. Режимы, палитры, музыка
+   9. Кастомная палитра
+   10. Бит-панель
+   11. Подрежимы и слайдеры
+   12. Фоновый плеер
+   13. Лаборатория (Lab)
+   14. Мобилка (≤768px)
+   15. Тачскрин, iPhone safe-area
+   ══════════════════════════════════════════════════════════ */
+
+/* --- 1. Основа --- */
 html, body { width:100%; height:100%; overflow:hidden; background:#000; touch-action:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; position:fixed; top:0; left:0; font-family:'Segoe UI',system-ui,sans-serif; cursor:none; }
 canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; touch-action:none; z-index:1; cursor:none; }
 #wireCanvas { z-index:2; pointer-events:none; display:none; }
@@ -42,9 +84,10 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .anchor:hover { color:rgba(255,255,255,0.5); }
 .anchor.active { color:rgba(255,255,255,0.85); }
 .anchor-profile { top:14px; right:14px; }
-.anchor-eye { top:14px; left:14px; }
+.anchor-eye, #eyeToggle { top:auto !important; bottom:14px !important; left:14px !important; }
 .anchor-zoom { bottom:14px; right:14px; display:none; }
 .anchor-rotate { bottom:14px; left:14px; display:none; }
+.anchor-feedback { bottom:14px; right:14px; }
 @media (hover:none) and (pointer:coarse) { .anchor-zoom.visible { display:flex; } .anchor-rotate.visible { display:flex; } }
 
 /* --- Профиль --- */
@@ -64,10 +107,10 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 
 /* --- Левый тулбар --- */
 .toolbar {
-    position:fixed; left:14px; top:50%; z-index:15;
-    transform:translateY(-50%);
-    display:flex; flex-direction:column; align-items:center; gap:4px;
-    padding:8px;
+    position:fixed; left:14px; top:14px; z-index:15;
+    transform:none;
+    display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:4px;
+    width:auto; padding:8px;
     background:rgba(8,8,16,0.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
     border:1px solid rgba(255,255,255,0.06); border-radius:14px;
     pointer-events:auto; transition:opacity .3s;
@@ -84,19 +127,20 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .tool-icon.locked { opacity:0.2; cursor:default; }
 .tool-icon.locked:hover { opacity:0.25; background:transparent; }
 .lock-badge { position:absolute; bottom:0; right:0; font-size:10px; line-height:1; }
-.tool-divider { width:24px; height:1px; background:rgba(255,255,255,0.08); margin:4px 0; }
+.tool-divider { width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 4px; }
 
 /* --- Контентная панель (боковая) --- */
 .side-panel {
-    position:fixed; left:76px; top:50%; z-index:14;
-    transform:translateY(-50%) translateX(-8px);
-    width:286px; max-height:70vh;
+    position:fixed; left:14px; top:74px; z-index:14;
+    transform:translateY(-8px);
+    width:360px; height:auto; max-height:calc(100vh - 90px);
+    display:flex; flex-direction:column;
     background:rgba(8,8,16,0.92); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
     border:1px solid rgba(255,255,255,0.08); border-radius:14px;
     opacity:0; transition:opacity .2s,transform .2s;
     pointer-events:none; overflow:hidden;
 }
-.side-panel.open { opacity:1; transform:translateY(-50%) translateX(0); pointer-events:auto; }
+.side-panel.open { opacity:1; transform:translateY(0); pointer-events:auto; }
 
 .sp-page {
     display:none; padding:16px; max-height:70vh;
@@ -288,6 +332,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .ui-hidden .anchor-profile,
 .ui-hidden .anchor-zoom,
 .ui-hidden .anchor-rotate,
+.ui-hidden .anchor-feedback,
 .ui-hidden .anchor-music,
 .ui-hidden .profile-panel,
 .ui-hidden .bg-music-panel,
@@ -363,7 +408,7 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
 .mobile-grip-bar { display:none; }
 
 @media (max-width:768px) {
-    .scene-bar { display:none !important; }
+    .scene-bar { display:flex !important; }
     .anchor-eye { display:none !important; }
     .anchor-profile { display:none !important; }
     .anchor-music { display:none !important; }
@@ -404,11 +449,12 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
         padding-bottom:env(safe-area-inset-bottom,8px) !important;
         z-index:26 !important;
         background:rgba(8,8,14,0.92) !important; backdrop-filter:blur(20px) !important;
+        display:flex !important; flex-direction:column !important;
     }
     .side-panel.open { transform:translateY(0) !important; }
-    .mobile-grip-bar { display:flex; align-items:center; justify-content:center; height:22px; cursor:pointer; }
+    .mobile-grip-bar { display:flex; align-items:center; justify-content:center; height:22px; cursor:pointer; flex:0 0 auto; }
     .mobile-grip-bar .grip-bar { width:32px; height:3px; border-radius:2px; background:rgba(255,255,255,0.12); }
-    .sp-page { max-height:48vh; overflow-y:auto; }
+    .sp-page { max-height:none; flex:1 1 auto; min-height:0; overflow-y:auto; }
     .tool-divider { display:none; }
     .profile-panel { top:auto !important; bottom:0 !important; right:0 !important; left:0 !important; width:100% !important; z-index:27 !important; border-radius:16px 16px 0 0; max-height:60vh; overflow-y:auto; padding-top:0 !important; }
     /* #6 бит-машина мобильная */
@@ -556,3 +602,785 @@ canvas { display:block; position:fixed; top:0; left:0; width:100%; height:100%; 
     animation:genesisHintPulse 3s ease-in-out infinite; pointer-events:none; }
 @keyframes genesisHintPulse { 0%,100%{opacity:.15;} 50%{opacity:.35;} }
 .genesis-hint.fade { transition:opacity .8s; opacity:0 !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   🌿 Радиальное меню (перенос из radial-v8_4.html) — ТОЛЬКО мобильный.
+   Свойства/размеры/геометрия дословно из референса, селекторы
+   заскоуплены под #radialMenu, весь блок под @media(max-width:768px),
+   чтобы десктоп не был затронут. Демо-стили .phone/.viz/.dots не переносятся.
+   ═══════════════════════════════════════════════════════════════ */
+#radialMenu { display:none; }
+@media (max-width:768px) {
+    #radialMenu {
+        display:block; position:fixed; inset:0; z-index:25;
+        pointer-events:none; overflow:hidden;
+        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:#fff;
+        -webkit-user-select:none; user-select:none;
+    }
+    #radialMenu .grip {
+        position:absolute; bottom:0; left:0; right:0; height:52px; z-index:10;
+        transition:bottom .55s cubic-bezier(0.22,1,0.36,1), opacity .4s ease;
+        display:flex; align-items:center; justify-content:center;
+        cursor:pointer; -webkit-tap-highlight-color:transparent;
+        transition:opacity .3s; pointer-events:auto;
+    }
+    #radialMenu .grip.hidden { opacity:0; pointer-events:none; }
+    #radialMenu .grip-inner {
+        width:70px; height:35px; border-radius:50% 50% 0 0;
+        background:rgba(10,8,20,0.92);
+        backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+        border:1px solid rgba(255,255,255,0.06); border-bottom:none;
+        transition:width .5s cubic-bezier(0.22,1,0.36,1),height .5s cubic-bezier(0.22,1,0.36,1),border-radius .5s cubic-bezier(0.22,1,0.36,1),background .4s ease,border-color .4s ease,transform .2s;
+        display:flex; align-items:center; justify-content:center;
+    }
+    #radialMenu .grip-inner:active { transform:scale(0.95); }
+    /* Открыто — ушко перебирается НАД кольцами: внизу освобождается место
+       под подпись, и оно перестаёт перекрывать нижний край меню. */
+    /* высоту ушка в открытом состоянии задаёт JS (вплотную к последнему кольцу) */
+    #radialMenu.open .grip-inner {
+        border-radius:16px;
+        border:1px solid rgba(255,255,255,0.08);
+        background:rgba(10,8,20,0.92);
+    }
+    /* Открытое ушко сохраняет полный размер и непрозрачность — тот же «воздух»,
+       что в закрытом. Отличие только в позиции (наверху) и направлении шеврона. */
+    #radialMenu .grip.active .grip-inner {
+        width:70px; height:35px; opacity:1;
+        background:rgba(10,8,20,0.92);
+        border:1px solid rgba(255,255,255,0.08);
+        border-radius:16px; box-shadow:none;
+    }
+    #radialMenu .ring-container {
+        position:absolute; bottom:0; left:50%;
+        transform:translateX(-50%) scale(0); transform-origin:50% 100%;
+        width:390px; height:400px; z-index:5;
+        transition:transform .55s cubic-bezier(0.22,1,0.36,1); overflow:visible;
+    }
+    #radialMenu .ring-container.open { transform:translateX(-50%) scale(var(--ring-fit,1)); }
+    #radialMenu .ring-bg { position:absolute; bottom:0; left:0; width:100%; height:100%; }
+    #radialMenu .ring-items { position:absolute; bottom:0; left:0; width:100%; height:100%; pointer-events:none; }
+    #radialMenu .ri {
+        position:absolute; display:flex; flex-direction:column; align-items:center; justify-content:center;
+        transform-origin:center center; pointer-events:auto; cursor:pointer;
+        -webkit-tap-highlight-color:transparent; transition:none;
+    }
+    #radialMenu .ri svg { width:26px; height:26px; transition:color .2s,transform .2s; }
+    /* превью палитры — вытянутый «кусок пирога», не квадрат */
+    #radialMenu .ri svg.pal-prev { width:29px; height:23px; }
+    #radialMenu .ri.active svg { transform:scale(1.25); filter:drop-shadow(0 0 12px rgba(255,255,255,0.7)); }
+
+    /* Подложка: мягкое затемнение снизу — отделяет меню от холста */
+    #radialMenu .ring-backdrop {
+        position:absolute; inset:0; z-index:1; pointer-events:none;
+        opacity:0; transition:opacity .6s ease;
+        background:radial-gradient(120% 62% at 50% 108%,
+            rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.62) 38%,
+            rgba(0,0,0,0.30) 62%, rgba(0,0,0,0) 84%);
+    }
+    #radialMenu.open .ring-backdrop { opacity:1; }
+
+    /* Подпись НАД кольцами: во внутреннем круге её перекрывало ушко */
+    #radialMenu .ring-center {
+        position:absolute; left:0; right:0; bottom:16px; z-index:8;
+        text-align:center; pointer-events:none;
+        display:flex; flex-direction:column; align-items:center; gap:2px;
+        opacity:0; transition:opacity .3s ease .12s;
+    }
+    #radialMenu.open .ring-center { opacity:1; }
+    #radialMenu .rc-cat {
+        font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+        color:rgba(255,255,255,0.5); text-shadow:0 1px 4px rgba(0,0,0,0.8);
+    }
+    #radialMenu .rc-val {
+        font-size:18px; font-weight:600; color:#fff; line-height:1.15;
+        max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+        text-shadow:0 2px 10px rgba(0,0,0,0.9), 0 0 26px rgba(0,0,0,0.6);
+    }
+    /* ушко: шеврон, разворачивается когда меню открыто */
+    #radialMenu .grip-inner::after {
+        content:''; width:9px; height:9px; margin-top:5px;
+        border-left:1.5px solid rgba(255,255,255,0.5);
+        border-top:1.5px solid rgba(255,255,255,0.5);
+        transform:rotate(45deg); transition:transform .5s cubic-bezier(0.22,1,0.36,1), margin-top .5s cubic-bezier(0.22,1,0.36,1), border-color .4s ease;
+    }
+    #radialMenu .grip.active .grip-inner::after {
+        transform:rotate(225deg); margin-top:-3px;
+        border-color:rgba(255,255,255,0.85);
+    }
+    #radialMenu .swipe-zone { position:absolute; bottom:0; left:0; right:0; height:340px; z-index:6; }
+    #radialMenu .ri-text { font-size:27px; font-weight:500; white-space:nowrap; line-height:1.1; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   🧪 ЛАБОРАТОРИЯ — только ПК (на мобильном тумблер и панель скрыты)
+   ═══════════════════════════════════════════════════════════════ */
+.lab-panel { display:none; }
+.lab-toggle-row { display:none; }
+@media (min-width:769px) {
+    .lab-toggle-row { display:flex; }
+    /* в режиме лаборатории обычное меню исчезает */
+    /* .scene-bar НЕ прячем — из неё переключается 2D/3D и живёт кнопка лаборатории */
+    body.lab-mode .toolbar,
+    body.lab-mode .side-panel,
+    body.lab-mode .anchor-music,
+    body.lab-mode .bg-music-panel,
+    body.lab-mode .beat-panel { display:none !important; }
+    body.lab-mode .lab-panel { display:flex; }
+
+    .lab-panel {
+        position:fixed; top:0; right:0; width:340px; height:100vh; z-index:60;
+        flex-direction:column; gap:10px; padding:14px;
+        background:rgba(12,12,14,0.92); backdrop-filter:blur(14px);
+        border-left:1px solid rgba(255,255,255,0.08);
+        color:#ddd; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+        font-size:12px; overflow-y:auto;
+    }
+    .lab-head { display:flex; align-items:center; justify-content:space-between;
+        font-size:14px; font-weight:600; color:#fff; padding-bottom:8px;
+        border-bottom:1px solid rgba(255,255,255,0.08); }
+    .lab-exit { background:rgba(255,255,255,0.08); border:none; color:#ddd;
+        padding:5px 12px; border-radius:6px; cursor:pointer; font-size:11px; }
+    .lab-exit:hover { background:rgba(255,255,255,0.16); }
+    .lab-hint { color:#888; font-size:11px; line-height:1.5; }
+    .lab-err { display:none; background:rgba(230,57,70,0.15); border:1px solid rgba(230,57,70,0.4);
+        color:#ff9aa2; padding:6px 8px; border-radius:6px; font-size:11px; }
+    .lab-terms { display:flex; flex-direction:column; gap:10px; }
+    .lab-empty { color:#666; text-align:center; padding:16px 0; }
+    .lab-term { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);
+        border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:8px; }
+    .lab-term-head { display:flex; justify-content:space-between; align-items:center;
+        color:#fff; font-weight:600; font-size:12px; }
+    .lab-del { background:none; border:none; color:#888; cursor:pointer; font-size:13px; padding:0 4px; }
+    .lab-del:hover { color:#e63946; }
+    .lab-row { display:flex; flex-direction:column; gap:5px; }
+    .lab-cap { color:#888; font-size:10px; text-transform:uppercase; letter-spacing:.05em; }
+    .lab-opts { display:flex; flex-wrap:wrap; gap:4px; }
+    .lab-opt { background:rgba(255,255,255,0.06); border:1px solid transparent; color:#bbb;
+        padding:4px 8px; border-radius:5px; cursor:pointer; font-size:11px; }
+    .lab-opt:hover { background:rgba(255,255,255,0.12); }
+    .lab-opt.on { background:rgba(123,44,191,0.5); border-color:rgba(180,120,255,0.6); color:#fff; }
+    .lab-slide { display:flex; flex-direction:column; gap:3px; }
+    .lab-slide label { display:flex; justify-content:space-between; color:#999; font-size:10px; }
+    .lab-slide label b { color:#fff; font-weight:600; }
+    .lab-slide input[type=range] { width:100%; height:3px; -webkit-appearance:none;
+        background:rgba(255,255,255,0.15); border-radius:2px; outline:none; }
+    .lab-slide input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;
+        width:13px; height:13px; border-radius:50%; background:#fff; cursor:pointer; }
+    .lab-actions { display:flex; gap:6px; }
+    .lab-btn { flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1);
+        color:#ddd; padding:7px 6px; border-radius:6px; cursor:pointer; font-size:11px; }
+    .lab-btn:hover { background:rgba(255,255,255,0.16); color:#fff; }
+    .lab-btn.wide { width:100%; flex:none; }
+    .lab-export { display:flex; flex-direction:column; gap:7px;
+        border-top:1px solid rgba(255,255,255,0.08); padding-top:10px; }
+    .lab-key { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+        color:#fff; padding:5px 8px; border-radius:5px; font-size:12px; outline:none; }
+
+    .lab-scene-btn.active { background:rgba(123,44,191,0.5); color:#fff; }
+
+    .lab-sym { display:flex; flex-direction:column; gap:5px; margin:2px 0 4px;
+        padding:9px 10px; background:rgba(123,44,191,0.12);
+        border:1px solid rgba(180,120,255,0.25); border-radius:8px; }
+    .lab-sym label { display:flex; justify-content:space-between; align-items:center;
+        color:#c9b3ff; font-size:11px; }
+    .lab-sym label b { color:#fff; font-weight:600; }
+    .lab-sym input[type=range] { width:100%; height:3px; -webkit-appearance:none;
+        background:rgba(180,120,255,0.25); border-radius:2px; outline:none; }
+    .lab-sym input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;
+        width:15px; height:15px; border-radius:50%; background:#c9a0ff; cursor:pointer; }
+    .lab-btn.lab-primary { background:rgba(123,44,191,0.55); border-color:rgba(180,120,255,0.6); color:#fff; font-weight:600; }
+    .lab-btn.lab-primary:hover { background:rgba(123,44,191,0.75); }
+    .lab-chip { display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,0.07);
+        border:1px solid rgba(255,255,255,0.1); color:#ccc; padding:3px 7px; border-radius:5px;
+        cursor:pointer; font-size:11px; }
+    .lab-chip:hover { background:rgba(255,255,255,0.14); color:#fff; }
+    .lab-chip i { font-style:normal; color:#777; font-size:10px; padding:0 1px; }
+    .lab-chip i:hover { color:#e63946; }
+    .lab-none { color:#666; font-size:11px; }
+    .lab-code { background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.07);
+        border-radius:6px; padding:9px; font-family:'SF Mono',Consolas,monospace;
+        font-size:10px; line-height:1.45; color:#9fd; white-space:pre-wrap;
+        max-height:280px; overflow:auto; margin:0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   📄 Единый язык нижних листов (мобильный): бит-машина, редактор
+   палитры, профиль. Тот же тёмный лист, скрим и слайд, что у меню —
+   переход не ощущается выпадением в десктоп. Логика панелей не тронута.
+   ═══════════════════════════════════════════════════════════════ */
+.sheet-scrim { display:none; }
+@media (max-width:768px) {
+    .sheet-scrim {
+        display:block; position:fixed; inset:0; z-index:26;
+        background:rgba(0,0,0,0.55);
+        -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+        opacity:0; pointer-events:none; transition:opacity .32s ease;
+    }
+    body.sheet-open .sheet-scrim { opacity:1; pointer-events:auto; }
+
+    /* Общий лист — единая поверхность для всех трёх панелей */
+    .beat-panel,
+    .profile-panel,
+    .custom-palette-panel {
+        background:rgba(12,12,14,0.94) !important;
+        -webkit-backdrop-filter:blur(18px) !important; backdrop-filter:blur(18px) !important;
+        border-radius:20px 20px 0 0 !important;
+        border-top:1px solid rgba(255,255,255,0.08) !important;
+        box-shadow:0 -14px 44px rgba(0,0,0,0.5) !important;
+        transform:translateY(100%) !important;
+        transition:transform .42s cubic-bezier(0.34,1.2,0.64,1), opacity .3s !important;
+        opacity:1 !important;
+        padding-top:24px !important;
+        max-height:min(74vh, 640px); overflow-y:auto;
+        overscroll-behavior:contain;
+    }
+    .beat-panel.open,
+    .profile-panel.open,
+    .custom-palette-panel.open {
+        transform:translateY(0) !important;
+    }
+    /* Ручка-хват сверху листа — универсальный жест «нижний лист» */
+    .beat-panel::before,
+    .profile-panel::before,
+    .custom-palette-panel::before {
+        content:''; position:absolute; top:9px; left:50%; transform:translateX(-50%);
+        width:38px; height:4px; border-radius:2px;
+        background:rgba(255,255,255,0.25); z-index:2;
+    }
+}
+
+/* метка архетипа рядом с кнопкой Сюрприз в лаборатории */
+@media (min-width:769px){
+    .lab-arche { margin-left:8px; font-size:12px; color:#9d7bff; align-self:center; }
+}
+
+/* Нижняя панель тона (десктоп). На мобильном — управление в Настройках */
+#toneBar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;display:flex;gap:9px;align-items:center;padding:8px 12px;background:rgba(10,8,20,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:12px;}
+#toneBar>span{color:#a49fc4;font-size:11px;font-family:system-ui,-apple-system,sans-serif;}
+#toneBar .seg{display:flex;border:1px solid rgba(255,255,255,0.14);border-radius:8px;overflow:hidden;}
+#toneBar .seg button{background:none;border:0;color:#a49fc4;padding:5px 11px;font:600 12px system-ui;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+#toneBar .seg button.on{background:#f4f2ff;color:#160a1f;}
+.ui-hidden #toneBar{opacity:0;pointer-events:none;}
+@media (max-width:768px){#toneBar{display:none;}}
+
+/* ==== Нижняя шторка (мобилка) — в дизайн-системе ==== */
+.sheet-tabs,.sheet-peek{ display:none; }
+@media (max-width:768px){
+  #radialMenu{ display:none !important; }
+  .sheet-peek{
+    display:flex; align-items:center; justify-content:center; position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(14px + env(safe-area-inset-bottom,0px)); z-index:40;
+    padding:11px 26px; border-radius:12px; cursor:pointer;
+    background:rgba(10,10,16,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,0.06); box-shadow:0 8px 30px rgba(0,0,0,0.4);
+    transition:opacity .25s ease, transform .25s ease; pointer-events:auto;
+  }
+  .sheet-peek .grip-bar{ width:34px; height:4px; border-radius:2px; background:rgba(255,255,255,0.28); }
+  .sheet-peek.hidden{ opacity:0; pointer-events:none; transform:translateX(-50%) translateY(24px); }
+  .sheet-tabs{
+    display:flex; gap:4px; padding:4px; margin:0 4px 10px; border-radius:10px;
+    background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.04);
+  }
+  .sheet-tabs button{
+    flex:1; border:0; background:transparent; color:rgba(255,255,255,0.4);
+    font-weight:600; font-size:12px; letter-spacing:.02em; padding:10px 4px; border-radius:8px;
+    cursor:pointer; transition:.2s; -webkit-tap-highlight-color:transparent;
+  }
+  .sheet-tabs button.on{ background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.85); }
+}
+
+/* ==== Вариант A: нижняя шторка (мобилка) — в дизайн-системе ==== */
+.sheet-tabs,.sheet-peek{ display:none; }
+@media (max-width:768px){
+  #radialMenu{ display:none !important; }
+  .sheet-peek{
+    display:flex; align-items:center; justify-content:center; gap:9px; position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(14px + env(safe-area-inset-bottom,0px)); z-index:24;
+    padding:11px 26px; border-radius:12px; cursor:pointer;
+    background:rgba(10,10,16,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,0.06); box-shadow:0 8px 30px rgba(0,0,0,0.4);
+    transition:opacity .25s ease, transform .25s ease;
+  }
+  .sheet-peek .grip-bar{ width:34px; height:4px; border-radius:2px; background:rgba(255,255,255,0.28); }
+  .sheet-peek.hidden{ opacity:0; pointer-events:none; transform:translateX(-50%) translateY(24px); }
+  .sheet-tabs{
+    display:flex; gap:4px; padding:4px; margin:0 4px 10px; border-radius:10px;
+    background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.04);
+  }
+  .sheet-tabs button{
+    flex:1; border:0; background:transparent; color:rgba(255,255,255,0.4);
+    font-weight:600; font-size:12px; letter-spacing:.02em; padding:10px 4px; border-radius:8px;
+    cursor:pointer; transition:.2s; -webkit-tap-highlight-color:transparent;
+  }
+  .sheet-tabs button.on{ background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.85); }
+}
+
+/* Палитры на мобиле: сетка столбцами, свотч сверху, имя под ним */
+@media (max-width:768px){
+  .palette-list { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .palette-item { flex-direction:column; align-items:stretch; gap:4px; padding:4px; text-align:center; }
+  .palette-swatch { width:100%; height:34px; border-radius:6px; }
+  .palette-name { white-space:normal; text-align:center; font-size:9px; line-height:1.15; }
+}
+
+/* ==== Два режима: Слушать / Студия ==== */
+#entryScreen{ position:fixed; inset:0; z-index:30000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+  background:rgba(7,7,12,0.96); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); padding:24px; }
+#entryScreen.hidden{ display:none; }
+.entry-title{ font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:rgba(255,255,255,0.45); font-weight:600; }
+.entry-cards{ display:flex; gap:14px; width:min(560px,100%); }
+.entry-card{ flex:1; padding:22px 18px; border-radius:16px; cursor:pointer; text-align:left;
+  background:rgba(10,10,16,0.95); border:1px solid rgba(255,255,255,0.06); transition:.2s; }
+.entry-card:active{ transform:scale(.98); }
+.entry-card b{ display:block; font-size:18px; color:rgba(255,255,255,0.9); margin-bottom:6px; font-weight:600; }
+.entry-card span{ display:block; font-size:12px; line-height:1.4; color:rgba(255,255,255,0.5); }
+@media (max-width:640px){ .entry-cards{ flex-direction:column; } }
+
+/* Слушать: прячем студийный UI, показываем минимальный */
+#listenUI{ display:none; position:fixed; left:50%; transform:translateX(-50%); bottom:calc(16px + env(safe-area-inset-bottom,0px)); z-index:24; }
+.listen-btn{ padding:11px 22px; border-radius:12px; border:1px solid rgba(255,255,255,0.06); cursor:pointer;
+  background:rgba(10,10,16,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); color:rgba(255,255,255,0.85);
+  font-weight:600; font-size:13px; letter-spacing:.04em; box-shadow:0 8px 30px rgba(0,0,0,0.4); }
+body.mode-listen #listenUI{ display:block; }
+body.mode-listen .toolbar, body.mode-listen #sheetTabs, body.mode-listen #sheetPeek, body.mode-listen #sceneBar,
+body.mode-listen .anchor{ display:none !important; }
+
+/* Ещё */
+#moreBtn{ position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); right:14px; z-index:25; display:none;
+  padding:8px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.06); cursor:pointer;
+  background:rgba(10,10,16,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  color:rgba(255,255,255,0.7); font-weight:600; font-size:12px; letter-spacing:.04em; }
+body.mode-listen #moreBtn, body.mode-studio #moreBtn{ display:block; }
+#morePanel{ position:fixed; top:calc(52px + env(safe-area-inset-top,0px)); right:14px; z-index:26; display:none; min-width:220px;
+  padding:10px; border-radius:16px; border:1px solid rgba(255,255,255,0.06);
+  background:rgba(10,10,16,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); box-shadow:0 12px 40px rgba(0,0,0,0.5); }
+#morePanel.show{ display:block; }
+.more-item{ display:block; width:100%; text-align:left; padding:11px 12px; border-radius:8px; border:0; cursor:pointer;
+  background:transparent; color:rgba(255,255,255,0.8); font-size:13px; }
+.more-item:active{ background:rgba(255,255,255,0.06); }
+.more-item small{ display:block; font-size:11px; color:rgba(255,255,255,0.45); margin-top:2px; }
+
+/* ============================================================
+   ДИЗАЙН-СИСТЕМА: токены (единый источник истины)
+   ============================================================ */
+:root{
+  --surface:rgba(10,10,16,0.95); --surface-2:rgba(8,8,14,0.92); --surface-3:rgba(255,255,255,0.04);
+  --border:rgba(255,255,255,0.08); --border-strong:rgba(255,255,255,0.2);
+  --text:rgba(255,255,255,0.92); --text-2:rgba(255,255,255,0.72); --text-muted:rgba(255,255,255,0.6);
+  --active-bg:rgba(255,255,255,0.12); --active-border:rgba(255,255,255,0.28);
+  --live:rgba(123,44,191,0.9); /* «живое»: индикатор проигрывания/дирижёра */
+  --radius-s:8px; --radius-m:12px; --radius-l:16px;
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px;
+  --fs-label:11px; --fs-ctrl:13px; --fs-body:14px;
+  --tap:44px;
+}
+
+/* ---- Единый акцент активных состояний (нейтральный) ---- */
+.sub-btn.active, .sheet-tabs button.on, .palette-item.active, .drawer-scene.active, .scene-btn.active, .tool-icon.active{
+  background:var(--active-bg) !important; border:1px solid var(--active-border) !important; color:var(--text) !important;
+  font-weight:600;
+}
+.sub-btn, .sheet-tabs button, .palette-item, .drawer-scene, .scene-btn{ border:1px solid transparent; }
+
+/* ---- Контраст и минимальные размеры шрифта ---- */
+.ctrl-label, .sp-section-label, .panel-title, .palette-name, .more-item small, .track .a, .bgm-track-a, .ctrl-range-info,
+.entry-card span, .rotate-sub{ color:var(--text-muted) !important; }
+.ctrl-label, .sp-section-label, .panel-title{ font-size:var(--fs-label) !important; }
+.palette-name{ font-size:11px !important; }
+.sub-btn, .sheet-tabs button, .more-item, .listen-btn, .track .t, .bgm-track-t{ font-size:var(--fs-ctrl) !important; }
+.sp-section-label, .panel-title{ letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted) !important; margin:var(--space-4) var(--space-1) var(--space-2) !important; }
+
+/* ---- Состояния компонентов ---- */
+button:hover, .sub-btn:hover, .palette-item:hover, .more-item:hover, .entry-card:hover{ filter:brightness(1.12); }
+button:focus-visible, .sub-btn:focus-visible, .palette-item:focus-visible, .entry-card:focus-visible, input[type=range]:focus-visible{
+  outline:2px solid var(--active-border); outline-offset:2px; }
+button[disabled], .disabled{ opacity:.4; pointer-events:none; }
+.is-loading{ opacity:.6; }
+
+/* ---- Тач-цели ≥44px на мобиле ---- */
+@media (max-width:1024px){
+  .sub-btn, .sheet-tabs button, .more-item, .listen-btn, .tool-icon, .scene-btn{ min-height:var(--tap); }
+  .palette-item{ min-height:64px; }
+  .track, .bgm-track{ min-height:var(--tap); }
+}
+
+/* ---- reduced-motion ---- */
+@media (prefers-reduced-motion:reduce){
+  *, *::before, *::after{ transition-duration:.01ms !important; animation-duration:.01ms !important; }
+}
+
+/* ---- Индикатор режима ---- */
+#modeTag{ position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); right:78px; z-index:25; display:none;
+  padding:8px 10px; border-radius:var(--radius-s); font-size:var(--fs-label); letter-spacing:.12em; text-transform:uppercase;
+  color:var(--text-muted); background:var(--surface); border:1px solid var(--border); }
+body.mode-listen #modeTag, body.mode-studio #modeTag{ display:block; }
+#modeTag.live::before{ content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--live); margin-right:6px; vertical-align:middle; }
+
+/* ---- «Ещё»: группы ---- */
+.more-group{ padding:var(--space-2) var(--space-3) var(--space-1); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted); }
+.more-group + .more-item{ margin-top:0; }
+.more-sep{ height:1px; background:var(--border); margin:var(--space-2) var(--space-1); }
+
+/* ---- Портрет на мобиле → «Переверните телефон» ---- */
+#rotateOverlay{ display:none; position:fixed; inset:0; z-index:40000; align-items:center; justify-content:center; flex-direction:column; gap:var(--space-3);
+  background:rgba(7,7,12,0.97); color:var(--text); text-align:center; padding:var(--space-5); }
+.rotate-icon{ font-size:44px; color:var(--text-2); animation:rot 2.4s ease-in-out infinite; }
+@keyframes rot{ 0%,100%{ transform:rotate(0) } 50%{ transform:rotate(90deg) } }
+.rotate-text{ font-size:18px; font-weight:600; }
+@media (max-width:768px) and (orientation:portrait){ #rotateOverlay{ display:flex; } }
+
+/* ---- Ландшафт на мобиле: боковое меню (компактный десктоп-UI), центр свободен ---- */
+@media (max-width:1024px) and (orientation:landscape) and (max-height:600px){
+  #sheetPeek, #sheetTabs{ display:none !important; }
+  body.mode-studio .toolbar{ display:flex !important; flex-direction:column; left:8px; top:50%; transform:translateY(-50%); gap:6px; padding:6px; }
+  .side-panel{
+    left:0 !important; right:auto !important; top:0 !important; bottom:0 !important; width:min(340px,44vw) !important; max-height:none !important;
+    transform:translateX(-100%) !important; border-radius:0 var(--radius-l) var(--radius-l) 0 !important;
+    padding:var(--space-3) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom,0px)) !important;
+  }
+  .side-panel.open{ transform:translateX(0) !important; }
+  .mobile-grip-bar{ display:none !important; }
+  .sp-page{ max-height:none !important; }
+  .scene-bar{ top:8px !important; }
+}
+
+/* ============================================================
+   МОБИЛКА: HUD + ИНВЕНТАРЬ (панель на весь экран). Десктоп не затронут.
+   ============================================================ */
+#hud{ display:none; position:fixed; left:12px; bottom:calc(12px + env(safe-area-inset-bottom,0px)); z-index:24; gap:var(--space-2); }
+.hud-btn{ min-width:var(--tap); min-height:var(--tap); padding:0 14px; border-radius:var(--radius-m); border:1px solid var(--border);
+  background:rgba(10,10,16,0.6); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  color:var(--text-2); font-weight:600; font-size:var(--fs-ctrl); cursor:pointer; }
+#invClose{ display:none; position:absolute; top:calc(10px + env(safe-area-inset-top,0px)); right:12px; width:var(--tap); height:var(--tap);
+  border-radius:var(--radius-m); border:1px solid var(--border); background:var(--surface-3); color:var(--text-2); font-size:22px; line-height:1;
+  align-items:center; justify-content:center; cursor:pointer; z-index:2; }
+
+@media (max-width:1024px){
+  #sheetPeek, .scene-bar, .toolbar{ display:none !important; }
+  #hud{ display:flex !important; }
+  /* инвентарь: панель на весь экран, полупрозрачная — поле просвечивает (живой предпросмотр) */
+  .side-panel{
+    position:fixed !important; left:0 !important; right:0 !important; top:0 !important; bottom:0 !important;
+    width:100% !important; height:100% !important; max-height:none !important;
+    transform:translateY(100%) !important; border-radius:0 !important;
+    background:rgba(7,7,12,0.82) !important; backdrop-filter:blur(12px) !important; -webkit-backdrop-filter:blur(12px) !important;
+    display:flex !important; flex-direction:column !important;
+    padding:calc(12px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px)) !important;
+    z-index:26 !important;
+  }
+  .side-panel.open{ transform:translateY(0) !important; }
+  .mobile-grip-bar{ display:none !important; }
+  #invClose{ display:flex; }
+  #sheetTabs{ display:flex !important; margin:0 56px 12px 0 !important; }
+  .sp-page{ flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; }
+}
+
+/* ============================================================
+   МОБИЛКА: матрёшка-карточка в стиле Untitled UI. Десктоп не затронут.
+   ============================================================ */
+:root{
+  /* цвета — как в десктоп-меню (нейтральный акцент), структура — из Untitled UI */
+  --uui-bg:rgba(8,8,14,0.92); --uui-surface:rgba(255,255,255,0.04); --uui-surface-2:rgba(255,255,255,0.08);
+  --uui-border:rgba(255,255,255,0.08); --uui-border-2:rgba(255,255,255,0.15);
+  --uui-text:rgba(255,255,255,0.9); --uui-text-2:rgba(255,255,255,0.72); --uui-text-3:rgba(255,255,255,0.5);
+  --uui-brand:rgba(255,255,255,0.2); --uui-brand-soft:rgba(255,255,255,0.08);
+  --uui-r-s:6px; --uui-r-m:8px; --uui-r-l:10px; --uui-r-xl:16px;
+}
+#mrTab, #mrPanel{ display:none; }
+@media (max-width:1024px){
+  #hud,#sheetPeek,#sheetTabs,#invClose,.toolbar,.scene-bar{ display:none !important; }
+  .side-panel{ display:none !important; }
+
+  #mrTab{
+    display:flex; align-items:center; justify-content:center; position:fixed; z-index:27;
+    top:50%; right:10px; transform:translateY(-50%); width:13px; height:126px;
+    border-radius:7px; cursor:pointer;
+    background:#0c0e14; border:1px solid var(--uui-border); color:var(--uui-text-2);
+    box-shadow:0 8px 24px rgba(0,0,0,0.4); transition:right .28s var(--ease,ease);
+  }
+  #mrTab span{ display:none; }
+  body.mr-open #mrTab{ right:calc(min(400px,48vw) + 24px); }
+  body.mr-open #mrTab span{ transform:rotate(180deg); }
+
+  /* карточка: с отступами от краёв, скругление, тень */
+  #mrPanel{
+    display:flex; flex-direction:column; position:fixed; z-index:26;
+    top:12px; right:12px; bottom:12px; width:50vw; min-width:260px; max-width:520px;
+    transform:translateX(calc(100% + 16px)); transition:transform .3s cubic-bezier(.22,.61,.36,1);
+    background:#0c0e14; border:1px solid var(--uui-border); border-radius:var(--uui-r-xl);
+    box-shadow:0 24px 60px rgba(0,0,0,0.5); overflow:hidden;
+  }
+  body.mr-open #mrPanel{ transform:translateX(0); }
+
+  #mrHeader{ display:flex; align-items:center; gap:8px; height:52px; flex:0 0 auto;
+    padding:0 12px; border-bottom:1px solid var(--uui-border); }
+  #mrBack{ width:32px; height:32px; border-radius:var(--uui-r-s); border:1px solid var(--uui-border);
+    background:var(--uui-surface); color:var(--uui-text-2); font-size:18px; line-height:1; cursor:pointer; display:none; flex:0 0 auto; }
+  #mrBack.show{ display:flex; align-items:center; justify-content:center; }
+  #mrTitle{ font-size:14px; font-weight:600; color:var(--uui-text); letter-spacing:-.01em; }
+
+  #mrBody{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:10px; }
+  #mrBody::-webkit-scrollbar{ display:none; }
+  /* фикс-шапка (плеер музыки) вне скролла */
+  #mrFixed{ flex:0 0 auto; }
+  #mrFixed:empty{ display:none; }
+
+  /* строка Untitled UI: иконка слева + текст, шеврон справа */
+  .uui-item{ display:flex; align-items:center; gap:12px; width:100%; min-height:52px;
+    padding:0 12px; margin-bottom:6px; border-radius:var(--uui-r-m); cursor:pointer;
+    background:var(--uui-surface); border:1px solid var(--uui-border); color:var(--uui-text-2);
+    font-size:14px; font-weight:500; text-align:left; transition:.15s; }
+  .uui-item:active{ transform:scale(.98); }
+  .uui-item.active{ background:var(--uui-brand-soft); border-color:var(--uui-brand); color:var(--uui-text); }
+  .uui-item .uui-ic{ width:22px; height:22px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; color:var(--uui-text-3); }
+  .uui-item.active .uui-ic{ color:var(--uui-text); }
+  .uui-item .uui-ic svg{ width:20px; height:20px; }
+  .uui-item .uui-lbl{ flex:1 1 auto; }
+  .uui-item .uui-chev{ color:var(--uui-text-3); font-size:18px; }
+  .uui-item .uui-check{ color:var(--uui-text-2); font-size:15px; display:none; }
+  .uui-item.active .uui-check{ display:block; }
+  .uui-sep{ height:1px; background:var(--uui-border); margin:8px 4px; }
+  /* L0: сетка 2x2 иконок + переключатель сцен */
+  .mr-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .mr-tile{ display:flex; align-items:center; justify-content:center; aspect-ratio:1/1;
+    border-radius:var(--uui-r-l); background:var(--uui-surface); border:1px solid var(--uui-border);
+    color:var(--uui-text-2); cursor:pointer; transition:.15s; }
+  .mr-tile:active{ transform:scale(.97); }
+  .mr-tile.active{ background:var(--uui-surface-2); border-color:var(--uui-border-2); color:var(--uui-text); }
+  .mr-tile svg{ width:30px; height:30px; }
+  .mr-scene{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+  .mr-scene .scene-btn{ min-height:52px; border-radius:var(--uui-r-l); background:var(--uui-surface); border:1px solid var(--uui-border); color:var(--uui-text-3); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .mr-scene .scene-btn.active{ background:var(--uui-surface-2); border-color:var(--uui-border-2); color:var(--uui-text); }
+
+
+  /* палитры: сетка 2 колонки */
+  .uui-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .uui-swatch{ border-radius:var(--uui-r-m); overflow:hidden; cursor:pointer; border:1px solid var(--uui-border); }
+  .uui-swatch:active{ transform:scale(.97); }
+  .uui-swatch.active{ outline:2px solid var(--uui-brand); outline-offset:0; }
+  .uui-swatch .sw-bar{ height:40px; }
+  .uui-swatch .sw-name{ font-size:11px; color:var(--uui-text-3); padding:5px 8px; background:var(--uui-surface); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .uui-swatch.active .sw-name{ color:var(--uui-text); }
+
+  /* строки-значения / слайдеры */
+  .uui-row{ margin:2px 2px 12px; }
+  .uui-row label{ display:flex; justify-content:space-between; font-size:12px; color:var(--uui-text-3); margin-bottom:6px; }
+  .uui-row label b{ color:var(--uui-text-2); font-weight:600; }
+  .uui-row input[type=range]{ width:100%; -webkit-appearance:none; height:4px; border-radius:4px; background:var(--uui-surface-2); }
+  .uui-row input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--uui-brand); box-shadow:0 0 0 4px var(--uui-brand-soft); }
+
+  /* сегмент (пилюли) */
+  .uui-seg{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .uui-seg .uui-item{ flex:1 1 44%; justify-content:center; min-height:44px; margin-bottom:0; padding:0 8px; font-size:13px; }
+
+  /* плеер музыки (фикс) */
+  .uui-player{ padding:10px; margin:0; border-bottom:1px solid var(--uui-border); background:var(--uui-bg); }
+  .uui-player .pl-title{ font-size:13px; font-weight:600; color:var(--uui-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:8px; }
+  .uui-player .pl-ctrl{ display:flex; align-items:center; gap:10px; }
+  .uui-player .pl-play{ width:40px; height:40px; border-radius:50%; border:0; background:var(--uui-brand); color:#fff; font-size:16px; cursor:pointer; flex:0 0 auto; }
+  .uui-player .pl-seek{ flex:1 1 auto; -webkit-appearance:none; height:4px; border-radius:4px; background:var(--uui-surface-2); }
+  .uui-player .pl-seek::-webkit-slider-thumb{ -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--uui-text-2); }
+}
+
+/* Встроенная desktop-панель внутри матрёшки — полный паритет */
+@media (max-width:1024px){
+  #mrBody .sp-page{ display:block !important; position:static !important; inset:auto !important; transform:none !important;
+    width:auto !important; height:auto !important; max-height:none !important; background:none !important; border:0 !important;
+    padding:0 !important; box-shadow:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; border-radius:0 !important; }
+  #mrBody .mobile-grip-bar{ display:none !important; }
+}
+
+/* ==== Матрёшка: компактная раскладка (фикс гигантизма), по дизайн-системе ==== */
+@media (max-width:1024px){
+  #mrPanel{ width:min(400px,48vw) !important; min-width:240px !important; max-width:440px !important;
+    height:auto !important; max-height:calc(100% - 24px) !important; }
+  body.mr-open #mrTab{ right:calc(min(400px,48vw) + 24px) !important; }
+  #mrPanel.mr-section{ height:calc(100% - 24px) !important; }
+  #mrHeader{ display:none !important; }
+  #mrPanel.mr-section #mrHeader{ display:flex !important; }
+  #mrBody{ padding:16px !important; display:flex; flex-direction:column; flex:1 1 auto; min-height:0; overflow-y:auto; }
+  .mr-grid{ gap:8px !important; }
+  .mr-tile{ aspect-ratio:auto !important; height:60px !important; border-radius:10px !important; }
+  .mr-tile svg{ width:22px !important; height:22px !important; }
+  .mr-scene{ gap:8px !important; margin-top:8px !important; }
+  .mr-scene .scene-btn{ min-height:44px !important; border-radius:10px !important; }
+  .mr-scene .scene-btn svg{ width:20px; height:20px; }
+}
+
+/* ==== Десктоп: горизонтальный тулбар + панель вниз ==== */
+@media (min-width:1025px){
+  .sp-page{ flex:1 1 auto; min-height:0; overflow-y:auto; padding:14px; }
+  .sp-page::-webkit-scrollbar{ width:6px; }
+  .sp-page::-webkit-scrollbar-track{ background:transparent; }
+  .sp-page::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.15); border-radius:3px; }
+  .sp-page{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.15) transparent; }
+  /* сетка режимов 3x3, подписи без обрезки */
+  .modes-icon-grid{ display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:76px; gap:8px; min-height:244px; align-content:start; }
+  .mode-icon-item{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    padding:10px 6px; border-radius:10px; background:transparent;
+    border:1px solid transparent; cursor:pointer; transition:.15s; text-align:center; }
+  .mode-icon-item:hover{ background:rgba(255,255,255,0.06); }
+  .mode-icon-item.active{ background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.2); }
+  .mode-icon-item .mode-icon-label{ font-size:11px; line-height:1.2; color:rgba(255,255,255,0.72); white-space:normal; word-break:break-word; }
+  .mode-icon-item.active .mode-icon-label{ color:rgba(255,255,255,0.9); }
+  .mode-icon-item svg{ width:24px; height:24px; }
+  .mode-icon-item .mi-name{ font-size:11px; line-height:1.2; color:rgba(255,255,255,0.72); white-space:normal; word-break:break-word; }
+  .mode-icon-item.active .mi-name{ color:rgba(255,255,255,0.9); }
+  /* пагинация */
+  .mode-pager{ display:flex; align-items:center; justify-content:center; gap:14px; margin-top:auto; padding-top:12px; }
+  .mode-pager button{ width:32px; height:32px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);
+    background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.72); font-size:16px; cursor:pointer; }
+  .mode-pager button:disabled{ opacity:.35; cursor:default; }
+  .mode-pager .pg-count{ font-size:12px; color:rgba(255,255,255,0.6); min-width:46px; text-align:center; }
+}
+
+/* Шрифт-акценты (после самохостинга): заголовки/значения — плотнее; числа — Space Grotesk */
+.panel-title, .sp-section-label, #mrTitle, .entry-title, .mpp-head{ font-family:var(--font-body); font-weight:600; }
+.ctrl-range-info, #partCountV, .pg-count, .num, .live-num{ font-family:var(--font-num); font-variant-numeric:tabular-nums; }
+
+/* Поповер параметров режима (long-press) */
+#modeParamsPop{ position:fixed; z-index:60; left:14px; top:120px; width:320px; max-height:60vh; overflow-y:auto;
+  display:none; padding:14px; border-radius:16px; background:rgba(8,8,14,0.96); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.08); box-shadow:0 24px 60px rgba(0,0,0,0.55); }
+#modeParamsPop.show{ display:block; }
+#modeParamsPop::-webkit-scrollbar{ width:6px; }
+#modeParamsPop::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.15); border-radius:3px; }
+.mpp-head{ font-size:12px; letter-spacing:.06em; color:rgba(255,255,255,0.72); margin-bottom:10px; }
+@media (max-width:1024px){ #modeParamsPop{ left:50%; top:50%; transform:translate(-50%,-50%); width:min(80vw,340px); } }
+
+/* ============================================================
+   МОБИЛКА: кастомный drawer по эскизам (разделы + 3x3 + живые числа)
+   ============================================================ */
+@media (max-width:1024px){
+  /* шапка = ряд иконок-разделов */
+  #mrHeader.mr-secbar{ display:flex !important; align-items:center; gap:8px; height:auto; padding:16px 16px 8px; border-bottom:0; margin:0; }
+  .mr-secicon{ flex:1; display:flex; align-items:center; justify-content:center; height:44px; border-radius:8px;
+    background:transparent; border:1px solid transparent; color:var(--uui-text-3); cursor:pointer; transition:.15s; }
+  .mr-secicon:hover{ background:rgba(255,255,255,0.05); }
+  .mr-secicon.active{ background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); color:var(--uui-text); }
+  .mr-secicon .mr-ic svg{ width:22px; height:22px; }
+  .mr-secsep{ width:1px; height:24px; background:var(--uui-border); flex:0 0 auto; }
+  #mrBody{ padding:16px !important; display:flex; flex-direction:column; flex:1 1 auto; min-height:0; overflow-y:auto; }
+
+  /* режимы 3x3 */
+  .mr-modes{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .mr-mode{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    height:72px; border-radius:10px; background:transparent; border:1px solid transparent; color:var(--uui-text-2); cursor:pointer; transition:.12s; padding:8px; }
+  .mr-mode:hover{ background:rgba(255,255,255,0.06); }
+  .mr-mode.active{ background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.2); color:var(--uui-text); }
+  .mr-mode .mr-ic svg{ width:24px; height:24px; }
+  .mr-mode .mr-mlbl{ font-size:11px; line-height:1.15; text-align:center; white-space:nowrap; }
+  .mr-pages{ text-align:center; font-size:13px; font-weight:600; color:var(--uui-text-3); margin-top:auto; padding-top:12px; }
+
+  /* палитры 3x3 без подписей */
+  .mr-pals{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .mr-pal{ height:72px; border-radius:10px; cursor:pointer; border:1px solid var(--uui-border); transition:.12s; }
+  .mr-pal:hover{ transform:scale(1.03); }
+  .mr-pal.active{ outline:2px solid #fff; outline-offset:1px; }
+
+  /* настройки: подзаголовок + живое число + слайдер */
+  .mr-sub{ font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--uui-text-3); margin:14px 2px 8px; }
+  .mr-slrow{ margin-bottom:6px; }
+  .mr-sltop{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .mr-sllbl{ font-size:13px; color:var(--uui-text-2); }
+  .mr-slval{ font-size:22px; font-weight:700; color:var(--uui-text); letter-spacing:-.02em; }
+  .mr-slider{ width:100%; -webkit-appearance:none; height:4px; border-radius:4px; background:var(--uui-surface-2); }
+  .mr-slider::-webkit-slider-thumb{ -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:#fff; }
+
+  /* ряды-пилюли (3+) */
+  .mr-seg3{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px; }
+  .mr-pill{ flex:1 1 30%; min-height:40px; display:flex; align-items:center; justify-content:center;
+    border-radius:10px; background:var(--uui-surface); border:1px solid var(--uui-border); color:var(--uui-text-2);
+    font-size:12px; cursor:pointer; transition:.15s; padding:0 8px; }
+  .mr-pill:hover{ background:rgba(255,255,255,0.08); }
+  .mr-pill.active{ background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.2); color:var(--uui-text); }
+
+  /* плеер + треки */
+  .mr-player{ padding:12px; border-bottom:1px solid var(--uui-border); }
+  .mr-pltitle{ font-size:13px; font-weight:600; color:var(--uui-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:10px; }
+  .mr-plrow{ display:flex; align-items:center; gap:10px; }
+  .mr-plplay{ width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.12); border:1px solid var(--uui-border); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; }
+  .mr-track{ min-height:44px; display:flex; align-items:center; padding:0 12px; border-radius:10px; background:var(--uui-surface); border:1px solid var(--uui-border); color:var(--uui-text-2); font-size:13px; margin-bottom:6px; cursor:pointer; }
+  .mr-track:hover{ background:rgba(255,255,255,0.08); }
+
+  /* 2D/3D — только при открытом меню */
+  .scene-bar{ display:none !important; }
+  body.mr-open .scene-bar{ display:flex !important; gap:6px; padding:5px !important; opacity:1;
+    left:12px !important; top:calc(12px + env(safe-area-inset-top,0px)) !important; right:auto !important; transform:none !important; }
+  body.mr-open .scene-bar .scene-btn{ width:40px !important; height:40px !important; border-radius:9px !important; }
+  body.mr-open .scene-bar .scene-btn svg{ width:20px; height:20px; }
+}
+
+@media (max-width:1024px){
+  #fpsToggleM{ display:none; position:fixed; left:12px; bottom:calc(12px + env(safe-area-inset-bottom,0px)); z-index:24;
+    padding:0 12px; height:40px; align-items:center; gap:10px; border-radius:10px; cursor:pointer;
+    background:#0c0e14; border:1px solid var(--uui-border); color:var(--uui-text-2); }
+  body.mr-open #fpsToggleM{ display:flex; }
+  #fpsToggleM .fps-lbl{ font-size:12px; font-weight:600; letter-spacing:.06em; }
+  #fpsToggleM .fps-sw{ width:36px; height:20px; border-radius:10px; background:rgba(255,255,255,0.14); position:relative; transition:.15s; }
+  #fpsToggleM .fps-knob{ position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:.15s; }
+  #fpsToggleM.on .fps-sw{ background:rgba(123,44,191,0.7); }
+  #fpsToggleM.on .fps-knob{ left:18px; }
+}
+@media (min-width:1025px){ #fpsToggleM{ display:none; } }
+
+/* Squircle-углы (прогрессивно) */
+@media (max-width:1024px){
+  #mrPanel, .mr-mode, .mr-pal, .mr-secicon, .mr-pill, .mr-p2art, #fpsToggleM, .mr-p2play{ corner-shape: superellipse(1.8); }
+}
+@supports (corner-shape: squircle){ .mode-icon-item, .sub-btn, .tool-icon{ corner-shape: squircle; } }
+
+/* FPS: счётчик рядом с тумблером (открыто) / крайне слева (закрыто) */
+@media (max-width:1024px){
+  #fpsOverlay{ left:12px !important; top:auto !important; bottom:calc(12px + env(safe-area-inset-bottom,0px)) !important; transition:left .28s ease, bottom .28s ease; }
+  body.mr-open #fpsOverlay{ left:118px !important; }  /* справа от тумблера */
+}
+
+/* Новый плеер */
+@media (max-width:1024px){
+  .mr-player2{ padding:16px; }
+  .mr-p2top{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .mr-p2art{ width:52px; height:52px; border-radius:12px; flex:0 0 auto; corner-shape:superellipse(1.8); box-shadow:0 6px 18px rgba(0,0,0,0.4); }
+  .mr-p2title{ font-size:14px; font-weight:600; color:var(--uui-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mr-p2artist{ font-size:12px; color:var(--uui-text-3); margin-top:2px; }
+  .mr-p2prog{ margin-bottom:12px; }
+  .mr-p2seek{ width:100%; -webkit-appearance:none; height:4px; border-radius:4px; background:var(--uui-surface-2); }
+  .mr-p2seek::-webkit-slider-thumb{ -webkit-appearance:none; width:12px; height:12px; border-radius:50%; background:#fff; }
+  .mr-p2time{ display:flex; justify-content:space-between; font-size:11px; color:var(--uui-text-3); margin-top:6px; font-variant-numeric:tabular-nums; font-family:var(--font-num); }
+  .mr-p2ctrl{ display:flex; align-items:center; justify-content:center; gap:20px; }
+  .mr-p2side{ font-size:20px; color:var(--uui-text-2); cursor:pointer; }
+  .mr-p2play{ width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,0.12); border:1px solid var(--uui-border); color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer; }
+}
+
+/* Роллер живых чисел (odometer) */
+.od{ display:inline-flex; overflow:hidden; height:1.05em; line-height:1.05em; }
+.od-col{ display:inline-block; height:1.05em; overflow:hidden; }
+.od-col .od-strip{ display:flex; flex-direction:column; white-space:pre; transition:transform .32s cubic-bezier(.22,.61,.36,1); }
+.od-static{ display:inline-block; }
+
+/* Мобилка: параметры режима (десктоп .ctrl-slider) — в единый вид со слайдерами меню */
+@media (max-width:1024px){
+  #mrBody .ctrl-slider{ -webkit-appearance:none; appearance:none; height:4px; border-radius:4px; background:var(--uui-surface-2); }
+  #mrBody .ctrl-slider::-webkit-slider-thumb{ -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:#fff; border:0; }
+  #mrBody .ctrl-slider::-moz-range-thumb{ width:15px; height:15px; border-radius:50%; background:#fff; border:0; }
+  #mrBody .ctrl-row{ margin-bottom:10px; }
+  #mrBody .ctrl-label{ font-size:13px; color:var(--uui-text-2); }
+}
+
+/* Мобилка: панель Звук = вид ПК, адаптивные размеры */
+@media (max-width:1024px){
+  #mrBody #spMusic{ display:block !important; position:static !important; inset:auto !important; transform:none !important;
+    width:auto !important; height:auto !important; max-height:none !important; background:none !important; border:0 !important;
+    padding:0 !important; box-shadow:none !important; backdrop-filter:none !important; }
+  #mrBody .flow-upload-area{ padding:14px !important; border-radius:12px; }
+  #mrBody .flow-upload-icon{ font-size:22px; }
+  #mrBody .flow-upload-text{ font-size:13px; }
+  #mrBody .flow-controls{ margin-top:10px; }
+  #mrBody .player-btn{ width:44px; height:44px; }
+  #mrBody .player-seek, #mrBody .player-vol{ height:4px; }
+  #mrBody .player-seek::-webkit-slider-thumb, #mrBody .player-vol::-webkit-slider-thumb{ -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#fff; }
+  #mrBody .player-time{ font-size:11px; font-family:var(--font-num); font-variant-numeric:tabular-nums; }
+  #mrBody .sheet-title, #mrBody .sp-section-label{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--uui-text-3); margin:14px 2px 8px; }
+  #mrBody .bgm-track, #mrBody .track{ min-height:44px; border-radius:10px; }
+  #mrBody #audioSrcBtns .sub-btn, #mrBody #vizSegSet .sub-btn, #mrBody #conductorBtns .sub-btn{ min-height:40px; }
+}
