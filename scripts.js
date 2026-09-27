@@ -1117,14 +1117,15 @@ if(gl){glCanvas.addEventListener('webglcontextlost',function(e){e.preventDefault
 let GAP,W,H,COLS,ROWS,TOTAL,homeX,homeY,posX,posY,velX,velY,hue,glPositions,colorCache=null;
 // 🌿 Профили устройств: mobile ≤500, tablet 501-1024, desktop >1024
 const deviceProfiles={mobile:{pointScale:1.0,gapMult:1,fadeMult:1,brightMult:1.2},tablet:{pointScale:0.95,gapMult:1,fadeMult:1,brightMult:1.1},desktop:{pointScale:1,gapMult:1,fadeMult:1,brightMult:1}};
-let currentProfile='desktop',mobileScale=1,fadeMult=1,brightMult=1;
+let currentProfile='desktop',mobileScale=1,fadeMult=1,brightMult=1,gapPointScale=1;
 function detectProfile(){const sw=Math.min(screen.width||9999,screen.height||9999);if(sw<=500)return'mobile';if(sw<=1024)return'tablet';return'desktop';}
 function applyProfile(){currentProfile=detectProfile();const p=deviceProfiles[currentProfile];mobileScale=p.pointScale;fadeMult=p.fadeMult;brightMult=p.brightMult;}
 var PIXR=1;
 function resizeCanvas(){const nw=window.innerWidth,nh=window.innerHeight;if(nw<=0||nh<=0)return;if(nw===W&&nh===H)return;W=nw;H=nh;
     if(useWebGL){if(glCanvas.width!==W||glCanvas.height!==H){glCanvas.width=W;glCanvas.height=H;}glCanvas.style.width='';glCanvas.style.height='';if(gl)gl.viewport(0,0,W,H);}
     else{if(c2dCanvas.width!==W||c2dCanvas.height!==H){c2dCanvas.width=W;c2dCanvas.height=H;}c2dCanvas.style.width='';c2dCanvas.style.height='';if(ctx2d)ctx2d.setTransform(1,0,0,1,0,0);}}
-function init(){const _savedMode=typeof currentMode!=='undefined'?currentMode:null;const _savedScene=typeof currentScene!=='undefined'?currentScene:null;const _savedDim=typeof dimension!=='undefined'?dimension:null;applyProfile();W=0;H=0;resizeCanvas();const _gpuMode=(typeof engineMode!=='undefined'&&engineMode==='gpu')&&(typeof GPU_SPEC!=='undefined')&&!!GPU_SPEC[currentMode];const _effDesired=desiredParticles>0?(_gpuMode?desiredParticles:Math.min(desiredParticles,150000)):0;GAP=_effDesired>0?Math.max(1,Math.sqrt(W*H/_effDesired)):userGap*deviceProfiles[currentProfile].gapMult;COLS=Math.ceil(W/GAP);ROWS=Math.ceil(H/GAP);TOTAL=COLS*ROWS;homeX=new Float32Array(TOTAL);homeY=new Float32Array(TOTAL);posX=new Float32Array(TOTAL);posY=new Float32Array(TOTAL);velX=new Float32Array(TOTAL);velY=new Float32Array(TOTAL);hue=new Float32Array(TOTAL);glPositions=new Float32Array(TOTAL*2);sTheta=new Float32Array(TOTAL);sPhi=new Float32Array(TOTAL);const cc=(COLS-1)/2,cr=(ROWS-1)/2,md=Math.sqrt(cc*cc+cr*cr);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;homeX[i]=c*GAP;homeY[i]=r*GAP;posX[i]=homeX[i];posY[i]=homeY[i];const dx=c-cc,dy=r-cr,dist=Math.sqrt(dx*dx+dy*dy);const proj=md>0?(dx*.7071+dy*.7071)/md:0,dr=md>0?dist/md:0;hue[i]=1/(1+Math.exp(-(2+dr*4)*proj));sTheta[i]=Math.PI*(r/(ROWS-1));sPhi[i]=2*Math.PI*c/COLS;}if(useWebGL&&gl){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}colorCache=new Uint8Array(TOTAL*3);sDTheta=new Float32Array(TOTAL);sDPhi=new Float32Array(TOTAL);trailLayerBuf=new Float32Array(TOTAL*2);if(_savedMode)currentMode=_savedMode;if(_savedScene)currentScene=_savedScene;if(_savedDim!==null)dimension=_savedDim;}
+function init(){const _savedMode=typeof currentMode!=='undefined'?currentMode:null;const _savedScene=typeof currentScene!=='undefined'?currentScene:null;const _savedDim=typeof dimension!=='undefined'?dimension:null;applyProfile();W=0;H=0;resizeCanvas();const _gpuMode=(typeof engineMode!=='undefined'&&engineMode==='gpu')&&(typeof GPU_SPEC!=='undefined')&&!!GPU_SPEC[currentMode];const _memCap=(currentProfile==='mobile')?400000:(currentProfile==='tablet'?800000:2000000);
+    const _effDesired=desiredParticles>0?Math.min(_gpuMode?desiredParticles:Math.min(desiredParticles,150000),_memCap):0;GAP=_effDesired>0?Math.max(1,Math.sqrt(W*H/_effDesired)):userGap*deviceProfiles[currentProfile].gapMult;COLS=Math.ceil(W/GAP);ROWS=Math.ceil(H/GAP);TOTAL=COLS*ROWS;gapPointScale=Math.max(0.4,Math.min(2.8,(GAP*1.15)/2.5));homeX=new Float32Array(TOTAL);homeY=new Float32Array(TOTAL);posX=new Float32Array(TOTAL);posY=new Float32Array(TOTAL);velX=new Float32Array(TOTAL);velY=new Float32Array(TOTAL);hue=new Float32Array(TOTAL);glPositions=new Float32Array(TOTAL*2);sTheta=new Float32Array(TOTAL);sPhi=new Float32Array(TOTAL);const cc=(COLS-1)/2,cr=(ROWS-1)/2,md=Math.sqrt(cc*cc+cr*cr);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;homeX[i]=c*GAP;homeY[i]=r*GAP;posX[i]=homeX[i];posY[i]=homeY[i];const dx=c-cc,dy=r-cr,dist=Math.sqrt(dx*dx+dy*dy);const proj=md>0?(dx*.7071+dy*.7071)/md:0,dr=md>0?dist/md:0;hue[i]=1/(1+Math.exp(-(2+dr*4)*proj));sTheta[i]=Math.PI*(r/(ROWS-1));sPhi[i]=2*Math.PI*c/COLS;}if(useWebGL&&gl){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}colorCache=new Uint8Array(TOTAL*3);sDTheta=new Float32Array(TOTAL);sDPhi=new Float32Array(TOTAL);trailLayerBuf=new Float32Array(TOTAL*2);if(_savedMode)currentMode=_savedMode;if(_savedScene)currentScene=_savedScene;if(_savedDim!==null)dimension=_savedDim;}
 
 // Three.js 3D scene → scene3d.js
 
@@ -1539,14 +1540,14 @@ for(let i=0;i<TOTAL;i++){const px=posX[i],py=posY[i];if(isActive){const force=ge
 // ══════════════════════════════════════
 
 // 🌿 Рисуем массив частиц через WebGL (points)
-function drawParticles(positions,o){gl.useProgram(program);gl.uniform2f(uResolution,W,H);gl.uniform1fv(uStopH,shaderH);gl.uniform1fv(uStopS,shaderS);gl.uniform1fv(uStopV,shaderV);gl.uniform1f(uAlpha,(o.alpha||1)*brightnessLevel*brightMult*toneExposureMul*reactiveBrightMul);gl.uniform3f(uColorMask,o.r!==undefined?o.r:1,o.g!==undefined?o.g:1,o.b!==undefined?o.b:1);gl.uniform1f(uRotation,o.rotation||0);gl.uniform1f(uScale,(o.scale||1)*zoomLevel);gl.uniform2f(uOffset,o.ox||0,o.oy||0);gl.uniform1f(uPointScale,(o.pointScale||1)*zoomLevel*mobileScale);gl.uniform1f(uSphereMode,o.sphereMode||0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,positions,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.enableVertexAttribArray(aHue);gl.vertexAttribPointer(aHue,1,gl.FLOAT,false,0,0);gl.drawArrays(gl.POINTS,0,TOTAL);}
+function drawParticles(positions,o){gl.useProgram(program);gl.uniform2f(uResolution,W,H);gl.uniform1fv(uStopH,shaderH);gl.uniform1fv(uStopS,shaderS);gl.uniform1fv(uStopV,shaderV);gl.uniform1f(uAlpha,(o.alpha||1)*brightnessLevel*brightMult*toneExposureMul*reactiveBrightMul);gl.uniform3f(uColorMask,o.r!==undefined?o.r:1,o.g!==undefined?o.g:1,o.b!==undefined?o.b:1);gl.uniform1f(uRotation,o.rotation||0);gl.uniform1f(uScale,(o.scale||1)*zoomLevel);gl.uniform2f(uOffset,o.ox||0,o.oy||0);gl.uniform1f(uPointScale,(o.pointScale||1)*zoomLevel*mobileScale*gapPointScale);gl.uniform1f(uSphereMode,o.sphereMode||0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,positions,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.enableVertexAttribArray(aHue);gl.vertexAttribPointer(aHue,1,gl.FLOAT,false,0,0);gl.drawArrays(gl.POINTS,0,TOTAL);}
 // 🌿 рисуем частицы с учётом мандалы (секторное зеркало)
 function renderWithMode(positions,baseAlpha){
 if(currentMode==='mandala'){const mp=modeParams.mandala;const sectors=Math.round(mp.sectors);const baseRot=time*.0003*spinDirection*(mp.mandalaSpin||1);for(let k=0;k<sectors;k++){const r=baseRot+k*Math.PI*2/sectors;drawParticles(positions,{rotation:r,alpha:baseAlpha*Math.max(.15,1-k*(1/(sectors+2))),scale:1});}}
 else{drawParticles(positions,{alpha:baseAlpha});}}
 
 // ═══ Тон: экспозиция по плотности (вар.1) + HDR ACES (вар.2). Дефолт — Аддитив (вид не меняется) ═══
-let toneMode='add', toneDensityPower=1.0, toneAces=0.85, toneExposureMul=1;
+let toneMode='add', toneDensityPower=0, toneAces=0.85, toneExposureMul=1;
 // Аудиовизуал: 'pattern' (А — режим ведёт, музыка=акценты) | 'reactive' (Б — аудио ведёт)
 let returnMode=0, returnT=0;
 function hashF(i){var x=Math.sin(i*12.9898)*43758.5453;return x-Math.floor(x);}
@@ -2468,7 +2469,7 @@ function gpuDrawFromTexture(alpha){
     gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,gpuHueTex);gl.uniform1i(gl.getUniformLocation(gpuRenderProg,'uHue'),1);
     gl.uniform2f(gl.getUniformLocation(gpuRenderProg,'uTex'),gpuTW,gpuTH);gl.uniform2f(gl.getUniformLocation(gpuRenderProg,'u_res'),W,H);
     gl.uniform2f(gl.getUniformLocation(gpuRenderProg,'u_offset'),0,0);gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_rotation'),0);
-    gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_scale'),zoomLevel);gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_pointScale'),zoomLevel*mobileScale*PIXR);
+    gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_scale'),zoomLevel);gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_pointScale'),zoomLevel*mobileScale*gapPointScale);
     gl.uniform1fv(gl.getUniformLocation(gpuRenderProg,'u_stopH'),shaderH);gl.uniform1fv(gl.getUniformLocation(gpuRenderProg,'u_stopS'),shaderS);gl.uniform1fv(gl.getUniformLocation(gpuRenderProg,'u_stopV'),shaderV);
     gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_alpha'),alpha*brightnessLevel*brightMult*toneExposureMul*reactiveBrightMul);
     gl.drawArrays(gl.POINTS,0,TOTAL);gl.bindVertexArray(null);
@@ -2619,6 +2620,14 @@ window.__playExample=playExampleTrack;
     if(!tab||!panel||typeof onTap!=='function')return;
     var SEC=[['modes','Режимы'],['palette','Палитра'],['settings','Настройки'],['music','Музыка']];
     var active='modes', modePage=0;
+    var _swipeCb=null,_sx=0,_sy=0;
+    function _swipe(cb){_swipeCb=cb;}
+    bodyEl.addEventListener('touchstart',function(e){if(e.touches&&e.touches.length){_sx=e.touches[0].clientX;_sy=e.touches[0].clientY;}},{capture:true,passive:true});
+    bodyEl.addEventListener('touchend',function(e){
+        if(!_swipeCb||!e.changedTouches||!e.changedTouches.length)return;
+        var dx=e.changedTouches[0].clientX-_sx,dy=e.changedTouches[0].clientY-_sy;
+        if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.5)_swipeCb(dx<0?-1:1);
+    },{capture:true,passive:true});
     function icon(tool){var b=document.querySelector('.tool-icon[data-tool="'+tool+'"]');return b?b.innerHTML:'';}
     function mrToggle(e){if(e)e.stopPropagation();document.body.classList.toggle('mr-open');}
     onTap(tab,mrToggle);
@@ -2676,8 +2685,7 @@ window.__playExample=playExampleTrack;
         host.appendChild(grid);
         var pg=document.createElement('div');pg.className='mr-pages num';pg.textContent=(modePage+1)+' / '+pages;host.appendChild(pg);
         // свайп (на сетке, чтобы слушатель умирал с ней)
-        var sx=0;grid.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;},{passive:true});
-        grid.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>45){if(dx<0&&modePage<pages-1)modePage++;else if(dx>0&&modePage>0)modePage--;draw();}},{passive:true});
+        _swipe(function(dir){if(dir<0&&modePage<pages-1)modePage++;else if(dir>0&&modePage>0)modePage--;else return;draw();});
     }
     var palPage=0;
     function drawPalette(host){
@@ -2692,8 +2700,7 @@ window.__playExample=playExampleTrack;
                 if(typeof buildPaletteList==='function')buildPaletteList();draw();});g.appendChild(sw);});
         host.appendChild(g);
         var pg=document.createElement('div');pg.className='mr-pages num';pg.textContent=(palPage+1)+' / '+pages;host.appendChild(pg);
-        var sx=0;g.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;},{passive:true});
-        g.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>45){if(dx<0&&palPage<pages-1)palPage++;else if(dx>0&&palPage>0)palPage--;draw();}},{passive:true});
+        _swipe(function(dir){if(dir<0&&palPage<pages-1)palPage++;else if(dir>0&&palPage>0)palPage--;else return;draw();});
     }
     function drawSettings(host){
         host.appendChild(subhead('Частицы'));
@@ -2732,7 +2739,7 @@ window.__playExample=playExampleTrack;
         var _ms=document.getElementById('modeSettings');var _sp=document.getElementById('spSettings');
         if(_ms&&_sp&&bodyEl.contains(_ms))_sp.appendChild(_ms);
         var _mus=document.getElementById('spMusic'),_side=document.getElementById('sidePanel');if(_mus&&_side&&bodyEl.contains(_mus))_side.appendChild(_mus);
-        fixed.innerHTML='';bodyEl.innerHTML='';bodyEl.className='';
+        _swipeCb=null;fixed.innerHTML='';bodyEl.innerHTML='';bodyEl.className='';
         if(active==='modes')drawModes(bodyEl);
         else if(active==='palette')drawPalette(bodyEl);
         else if(active==='settings')drawSettings(bodyEl);
