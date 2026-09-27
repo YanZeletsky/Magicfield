@@ -1,4 +1,4 @@
-const CACHE_NAME = 'soundfield-v181';
+const CACHE_NAME = 'soundfield-v182';
 const FONTS = ['./fonts/manrope-cyrillic-400-normal.woff2','./fonts/manrope-cyrillic-500-normal.woff2','./fonts/manrope-cyrillic-600-normal.woff2','./fonts/manrope-cyrillic-700-normal.woff2','./fonts/manrope-latin-400-normal.woff2','./fonts/manrope-latin-500-normal.woff2','./fonts/manrope-latin-600-normal.woff2','./fonts/manrope-latin-700-normal.woff2','./fonts/space-grotesk-latin-500-normal.woff2','./fonts/space-grotesk-latin-600-normal.woff2','./fonts/space-grotesk-latin-700-normal.woff2'];
 const ASSETS = [
   './',
@@ -8,9 +8,9 @@ const ASSETS = [
   './audio.js',
   './tools.js',
   './scene3d.js',
-  './visual.js',
+  
   './scripts.js',
-  './radialmenu.js',
+  
   './i18n.js',
   './icon-192.png',
   './icon-512.png',

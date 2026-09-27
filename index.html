@@ -107,8 +107,6 @@
         </div>
     </div>
 
-    <!-- 🌿 Мобильная шторка заменена радиальным меню (см. #radialMenu ниже + radialmenu.js). Прежняя разметка удалена; JS-блок 12 «Мобильная шторка» отключается сам (guard if(mDrawer&&mGrip)). -->
-
     <!-- Портрет на мобиле: просим повернуть -->
     <div id="rotateOverlay"><div class="rotate-icon">⟳</div><div class="rotate-text">Переверните телефон</div><div class="rotate-sub">Soundfield работает в горизонтальном положении</div></div>
     <!-- HUD (мобилка): минимум кнопок на виду -->
@@ -120,19 +118,6 @@
         <div id="mrBody"></div>
     </div>
     <!-- 🌿 Радиальное меню (перенос из radial-v8_4.html) — только мобильный -->
-    <div id="radialMenu">
-        <div class="ring-container" id="ringContainer">
-            <svg class="ring-bg" id="ringBg" viewBox="0 0 390 400" preserveAspectRatio="xMidYMax meet"></svg>
-            <div class="ring-items" id="ringItems3"></div>
-            <svg class="ring-bg" id="sliderSvg4" viewBox="0 0 390 400" preserveAspectRatio="xMidYMax meet" style="pointer-events:none;"></svg>
-            <svg class="ring-bg" id="textSvg3" viewBox="0 0 390 400" preserveAspectRatio="xMidYMax meet" style="pointer-events:none;"></svg>
-            <div class="ring-items" id="ringItems2"></div>
-            <div class="ring-items" id="ringItems"></div>
-        </div>
-        <div class="swipe-zone" id="swipeZone"></div>
-        <div class="grip" id="grip"><div class="grip-inner"></div></div>
-    </div>
-
     <!-- 🌿 Классический анализатор — живой ряд волн для каждого канала -->
     <div class="classic-analyzer" id="classicAnalyzer">
         <canvas id="analyzerCanvas"></canvas>
@@ -401,7 +386,6 @@
     <script src="tools.js"></script>
     <script src="scene3d.js"></script>
     <script src="scripts.js"></script>
-    <script src="radialmenu.js"></script>
     <script src="i18n.js"></script>
 </body>
 </html>
