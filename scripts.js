@@ -1120,7 +1120,8 @@ const deviceProfiles={mobile:{pointScale:1.0,gapMult:1,fadeMult:0.55,brightMult:
 let currentProfile='desktop',mobileScale=1,fadeMult=1,brightMult=1;
 function detectProfile(){const sw=Math.min(screen.width||9999,screen.height||9999);if(sw<=500)return'mobile';if(sw<=1024)return'tablet';return'desktop';}
 function applyProfile(){currentProfile=detectProfile();const p=deviceProfiles[currentProfile];mobileScale=p.pointScale;fadeMult=p.fadeMult;brightMult=p.brightMult;}
-function resizeCanvas(){const nw=window.innerWidth,nh=window.innerHeight;if(nw===W&&nh===H)return;W=nw;H=nh;if(useWebGL){if(glCanvas.width!==W||glCanvas.height!==H){glCanvas.width=W;glCanvas.height=H;}if(gl)gl.viewport(0,0,W,H);}else{if(c2dCanvas.width!==W||c2dCanvas.height!==H){c2dCanvas.width=W;c2dCanvas.height=H;}}}
+var PIXR=1;
+function resizeCanvas(){const nw=window.innerWidth,nh=window.innerHeight;const dpr=Math.min(window.devicePixelRatio||1,2);if(nw===W&&nh===H&&dpr===PIXR)return;W=nw;H=nh;PIXR=dpr;const pw=Math.round(W*dpr),ph=Math.round(H*dpr);if(useWebGL){if(glCanvas.width!==pw||glCanvas.height!==ph){glCanvas.width=pw;glCanvas.height=ph;}glCanvas.style.width=W+'px';glCanvas.style.height=H+'px';if(gl)gl.viewport(0,0,pw,ph);}else{if(c2dCanvas.width!==pw||c2dCanvas.height!==ph){c2dCanvas.width=pw;c2dCanvas.height=ph;}c2dCanvas.style.width=W+'px';c2dCanvas.style.height=H+'px';if(ctx2d)ctx2d.setTransform(dpr,0,0,dpr,0,0);}}
 function init(){const _savedMode=typeof currentMode!=='undefined'?currentMode:null;const _savedScene=typeof currentScene!=='undefined'?currentScene:null;const _savedDim=typeof dimension!=='undefined'?dimension:null;applyProfile();W=0;H=0;resizeCanvas();const _gpuMode=(typeof engineMode!=='undefined'&&engineMode==='gpu')&&(typeof GPU_SPEC!=='undefined')&&!!GPU_SPEC[currentMode];const _effDesired=desiredParticles>0?(_gpuMode?desiredParticles:Math.min(desiredParticles,150000)):0;GAP=_effDesired>0?Math.max(1,Math.sqrt(W*H/_effDesired)):userGap*deviceProfiles[currentProfile].gapMult;COLS=Math.ceil(W/GAP);ROWS=Math.ceil(H/GAP);TOTAL=COLS*ROWS;homeX=new Float32Array(TOTAL);homeY=new Float32Array(TOTAL);posX=new Float32Array(TOTAL);posY=new Float32Array(TOTAL);velX=new Float32Array(TOTAL);velY=new Float32Array(TOTAL);hue=new Float32Array(TOTAL);glPositions=new Float32Array(TOTAL*2);sTheta=new Float32Array(TOTAL);sPhi=new Float32Array(TOTAL);const cc=(COLS-1)/2,cr=(ROWS-1)/2,md=Math.sqrt(cc*cc+cr*cr);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const i=r*COLS+c;homeX[i]=c*GAP;homeY[i]=r*GAP;posX[i]=homeX[i];posY[i]=homeY[i];const dx=c-cc,dy=r-cr,dist=Math.sqrt(dx*dx+dy*dy);const proj=md>0?(dx*.7071+dy*.7071)/md:0,dr=md>0?dist/md:0;hue[i]=1/(1+Math.exp(-(2+dr*4)*proj));sTheta[i]=Math.PI*(r/(ROWS-1));sPhi[i]=2*Math.PI*c/COLS;}if(useWebGL&&gl){gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.bufferData(gl.ARRAY_BUFFER,hue,gl.STATIC_DRAW);}colorCache=new Uint8Array(TOTAL*3);sDTheta=new Float32Array(TOTAL);sDPhi=new Float32Array(TOTAL);trailLayerBuf=new Float32Array(TOTAL*2);if(_savedMode)currentMode=_savedMode;if(_savedScene)currentScene=_savedScene;if(_savedDim!==null)dimension=_savedDim;}
 
 // Three.js 3D scene → scene3d.js
@@ -1536,7 +1537,7 @@ for(let i=0;i<TOTAL;i++){const px=posX[i],py=posY[i];if(isActive){const force=ge
 // ══════════════════════════════════════
 
 // 🌿 Рисуем массив частиц через WebGL (points)
-function drawParticles(positions,o){gl.useProgram(program);gl.uniform2f(uResolution,W,H);gl.uniform1fv(uStopH,shaderH);gl.uniform1fv(uStopS,shaderS);gl.uniform1fv(uStopV,shaderV);gl.uniform1f(uAlpha,(o.alpha||1)*brightnessLevel*brightMult*toneExposureMul*reactiveBrightMul);gl.uniform3f(uColorMask,o.r!==undefined?o.r:1,o.g!==undefined?o.g:1,o.b!==undefined?o.b:1);gl.uniform1f(uRotation,o.rotation||0);gl.uniform1f(uScale,(o.scale||1)*zoomLevel);gl.uniform2f(uOffset,o.ox||0,o.oy||0);gl.uniform1f(uPointScale,(o.pointScale||1)*zoomLevel*mobileScale);gl.uniform1f(uSphereMode,o.sphereMode||0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,positions,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.enableVertexAttribArray(aHue);gl.vertexAttribPointer(aHue,1,gl.FLOAT,false,0,0);gl.drawArrays(gl.POINTS,0,TOTAL);}
+function drawParticles(positions,o){gl.useProgram(program);gl.uniform2f(uResolution,W,H);gl.uniform1fv(uStopH,shaderH);gl.uniform1fv(uStopS,shaderS);gl.uniform1fv(uStopV,shaderV);gl.uniform1f(uAlpha,(o.alpha||1)*brightnessLevel*brightMult*toneExposureMul*reactiveBrightMul);gl.uniform3f(uColorMask,o.r!==undefined?o.r:1,o.g!==undefined?o.g:1,o.b!==undefined?o.b:1);gl.uniform1f(uRotation,o.rotation||0);gl.uniform1f(uScale,(o.scale||1)*zoomLevel);gl.uniform2f(uOffset,o.ox||0,o.oy||0);gl.uniform1f(uPointScale,(o.pointScale||1)*zoomLevel*mobileScale*PIXR);gl.uniform1f(uSphereMode,o.sphereMode||0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,positions,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(aPosition);gl.vertexAttribPointer(aPosition,2,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,hueBuffer);gl.enableVertexAttribArray(aHue);gl.vertexAttribPointer(aHue,1,gl.FLOAT,false,0,0);gl.drawArrays(gl.POINTS,0,TOTAL);}
 // 🌿 рисуем частицы с учётом мандалы (секторное зеркало)
 function renderWithMode(positions,baseAlpha){
 if(currentMode==='mandala'){const mp=modeParams.mandala;const sectors=Math.round(mp.sectors);const baseRot=time*.0003*spinDirection*(mp.mandalaSpin||1);for(let k=0;k<sectors;k++){const r=baseRot+k*Math.PI*2/sectors;drawParticles(positions,{rotation:r,alpha:baseAlpha*Math.max(.15,1-k*(1/(sectors+2))),scale:1});}}
@@ -1624,19 +1625,20 @@ function ensureHDR(){
     aToneP=gl.getAttribLocation(toneProg,'a_pos');uToneHDR=gl.getUniformLocation(toneProg,'uHDR');uToneAces=gl.getUniformLocation(toneProg,'uAces');uToneEffect=gl.getUniformLocation(toneProg,'uEffect');uToneTexel=gl.getUniformLocation(toneProg,'uTexel');
     toneQuadBuf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,toneQuadBuf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
   }
-  if(hdrW!==W||hdrH!==H||!hdrTex){
+  var _pw=Math.round(W*PIXR),_ph=Math.round(H*PIXR);
+  if(hdrW!==_pw||hdrH!==_ph||!hdrTex){
     if(hdrFbo)gl.deleteFramebuffer(hdrFbo);if(hdrTex)gl.deleteTexture(hdrTex);
     hdrTex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,hdrTex);
-    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,W,H,0,gl.RGBA,gl.HALF_FLOAT,null);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,_pw,_ph,0,gl.RGBA,gl.HALF_FLOAT,null);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
     hdrFbo=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,hdrFbo);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,hdrTex,0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER,null);hdrW=W;hdrH=H;
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);hdrW=_pw;hdrH=_ph;
   }
   return true;
 }
 function tonemapToScreen(){
-  gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,W,H);gl.disable(gl.BLEND);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,Math.round(W*PIXR),Math.round(H*PIXR));gl.disable(gl.BLEND);
   gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);
   gl.useProgram(toneProg);gl.bindBuffer(gl.ARRAY_BUFFER,toneQuadBuf);gl.enableVertexAttribArray(aToneP);gl.vertexAttribPointer(aToneP,2,gl.FLOAT,false,0,0);
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,hdrTex);gl.uniform1i(uToneHDR,0);gl.uniform1f(uToneAces,toneAces);gl.uniform1i(uToneEffect,TONE_EFFECT[toneMode]||0);gl.uniform2f(uToneTexel,1.0/W,1.0/H);
@@ -1648,7 +1650,7 @@ const _gpu=gpuActive();
 if(!_gpu)for(let i=0;i<TOTAL;i++){glPositions[i*2]=posX[i];glPositions[i*2+1]=posY[i];}
 toneExposureMul=(toneMode==='add')?1:densityExposure(toneDensityPower);
 const hdr=(!!TONE_POST[toneMode])&&ensureHDR();
-if(hdr){gl.bindFramebuffer(gl.FRAMEBUFFER,hdrFbo);gl.viewport(0,0,W,H);}else{gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,W,H);}
+if(hdr){gl.bindFramebuffer(gl.FRAMEBUFFER,hdrFbo);gl.viewport(0,0,Math.round(W*PIXR),Math.round(H*PIXR));}else{gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,Math.round(W*PIXR),Math.round(H*PIXR));}
 if(trailMode&&!_gpu){
 // 🌿 dim-quad — предыдущий кадр угасает, оставляя световой след
 gl.useProgram(quadProgram);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
@@ -1670,21 +1672,22 @@ function loop(ts){const dt=Math.min(.1,(ts-lastTime)/1000);lastTime=ts;if(dimens
 // ══════════════════════════════════════
 
 let _resizeTimer=null;
-window.addEventListener('resize',()=>{
-    clearTimeout(_resizeTimer);
-    _resizeTimer=setTimeout(()=>{
-        const nw=window.innerWidth,nh=window.innerHeight;
-        if(nw===W&&nh===H)return;
-        const newProfile=detectProfile();
-        if(newProfile!==currentProfile){
-            cancelAnimationFrame(animFrame);init();lastTime=performance.now();animFrame=requestAnimationFrame(loop);
-        }else{
-            resizeCanvas();
-        }
-        if(dimension===3&&threeReady){renderer3D.setSize(W,H);camera3D.aspect=W/H;camera3D.updateProjectionMatrix();}
-        if(dimension===4&&gl){gl.viewport(0,0,W,H);}
-    },200);
-});
+function _reflow(){
+    const nw=window.innerWidth,nh=window.innerHeight,dpr=Math.min(window.devicePixelRatio||1,2);
+    if(nw<=0||nh<=0)return;                       // защита от переходных нулевых размеров
+    if(nw===W&&nh===H&&dpr===PIXR)return;
+    // полный ре-init: пересобрать сетку/буферы под новый размер, GPU-симуляцию пересоздать
+    cancelAnimationFrame(animFrame);
+    init();
+    if(typeof gpuStateN!=='undefined')gpuStateN=-1;   // форс-пересборка GPU-симуляции
+    if(dimension===3&&threeReady){renderer3D.setSize(W,H);renderer3D.setPixelRatio(dpr);camera3D.aspect=W/H;camera3D.updateProjectionMatrix();}
+    if(dimension===4&&gl){gl.viewport(0,0,Math.round(W*PIXR),Math.round(H*PIXR));}
+    lastTime=performance.now();animFrame=requestAnimationFrame(loop);
+}
+function _scheduleReflow(){clearTimeout(_resizeTimer);_resizeTimer=setTimeout(_reflow,200);}
+window.addEventListener('resize',_scheduleReflow);
+window.addEventListener('orientationchange',function(){clearTimeout(_resizeTimer);_resizeTimer=setTimeout(_reflow,350);});
+if(window.visualViewport){window.visualViewport.addEventListener('resize',_scheduleReflow);}
 const initNorm=normalizeStops(currentStops);for(let i=0;i<9;i++){shaderH[i]=initNorm[i].h;shaderS[i]=initNorm[i].s;shaderV[i]=initNorm[i].v;}
 if(useWebGL)initGPU();init();render();animFrame=requestAnimationFrame(loop);
 enhanceSliders();applyPlan();
@@ -2459,7 +2462,7 @@ function gpuDrawFromTexture(alpha){
     gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,gpuHueTex);gl.uniform1i(gl.getUniformLocation(gpuRenderProg,'uHue'),1);
     gl.uniform2f(gl.getUniformLocation(gpuRenderProg,'uTex'),gpuTW,gpuTH);gl.uniform2f(gl.getUniformLocation(gpuRenderProg,'u_res'),W,H);
     gl.uniform2f(gl.getUniformLocation(gpuRenderProg,'u_offset'),0,0);gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_rotation'),0);
-    gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_scale'),zoomLevel);gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_pointScale'),zoomLevel*mobileScale);
+    gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_scale'),zoomLevel);gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_pointScale'),zoomLevel*mobileScale*PIXR);
     gl.uniform1fv(gl.getUniformLocation(gpuRenderProg,'u_stopH'),shaderH);gl.uniform1fv(gl.getUniformLocation(gpuRenderProg,'u_stopS'),shaderS);gl.uniform1fv(gl.getUniformLocation(gpuRenderProg,'u_stopV'),shaderV);
     gl.uniform1f(gl.getUniformLocation(gpuRenderProg,'u_alpha'),alpha*brightnessLevel*brightMult*toneExposureMul*reactiveBrightMul);
     gl.drawArrays(gl.POINTS,0,TOTAL);gl.bindVertexArray(null);
